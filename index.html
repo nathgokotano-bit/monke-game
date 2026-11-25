@@ -513,10 +513,22 @@ const zoom=f=>{cam.z=Math.max(.35,Math.min(2.4,cam.z*f))};
 E.zoom=zoom;
 E.fit=()=>{
   const hasPeer=peers.length>0;
-  cam.x=hasPeer?-Math.round(N*TW*0.45*cam.z||120):0;
-  cam.y=-16;
-  const spanW=hasPeer?N*TW*1.75:N*TW*1.05;
-  cam.z=Math.max(0.45,Math.min(1.25,Math.min(W/spanW,H/(N*TH*2.4))));
+  if(!hasPeer){
+    cam.x=0;
+    cam.y=-14;
+    cam.z=Math.max(0.5,Math.min(1.25,Math.min(W/(N*TW*1.1),H/(N*TH*2.3))));
+    return;
+  }
+  const p0=peers[0];
+  const [ax,ay]=P(N/2,N/2);
+  const [bx,by]=P(p0.ox+N/2,p0.oy+N/2);
+  const midX=(ax+bx)/2;
+  const midY=(ay+by)/2;
+  const spanX=Math.abs(bx-ax)+N*TW*1.15;
+  const spanY=Math.abs(by-ay)+N*TH*2.4;
+  cam.z=Math.max(0.4,Math.min(1.15,Math.min(W/spanX,H/spanY)));
+  cam.x=-midX*cam.z;
+  cam.y=-midY*cam.z-10;
 };
 E.panToPeer=idx=>{
   const p=peers[idx];
@@ -688,16 +700,16 @@ const fresh=()=>({
     mk('Read for 20 minutes','medium','Min. 10 pages of a real book'),
     mk('Workout','hard','Min. 10 minutes of movement')
   ],
-  placedItems:[
-    it('fire',6,6),
-    it('hammock',4,5),
-    it('palm',2,9),
-    it('palm',9,3,1),
-    it('hut',8,8),
-    it('grass',5,8,2),
-    it('grass',7,4,1)
+placedItems:[
+    it('fire',4,4),
+    it('hammock',3,3),
+    it('palm',2,5),
+    it('palm',6,2,1),
+    it('hut',5,5),
+    it('grass',3,6,2),
+    it('grass',5,3,1)
   ],
-  monkeys:[{id:uid(),x:6,y:7,v:0}],
+  monkeys:[{id:uid(),x:4,y:5,v:0}],
   extraLand:null,landBought:false,inventory:{},history:{},
   dayShift:0,muted:false,
   player:{name:'',gender:'',done:false},
