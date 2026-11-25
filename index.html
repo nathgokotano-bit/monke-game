@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Monke Haven</title>
+<meta name="theme-color" content="#1e6bb8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Monke Haven">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- FILES: single-file distribution. Split at the "===== name =====" markers if modularizing:
+     style.css (<style>), isoEngine.js, habits.js, multiplayer.js, app.js (the four <script> blocks). -->
+<link rel="manifest" id="mf" href='data:application/manifest+json,{"name":"Monke Haven","short_name":"Monke","start_url":".","display":"standalone","background_color":"%231e6bb8","theme_color":"%231e6bb8"}'>
+<style>
+/* ===== style.css ===== */
+:root{
+  --bg:#F4EFE6;--card:#FFFFFF;--ink:#1b1613;--mut:#7A6E63;--tr:#E6DDCC;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#1C1915;--card:#2A251F;--ink:#F4EFE6;--mut:#A89C8D;--tr:#3C352C}
+}
+:root[data-theme="dark"]{--bg:#1C1915;--card:#2A251F;--ink:#F4EFE6;--mut:#A89C8D;--tr:#3C352C}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:#1e6bb8;color:var(--ink);font:700 14px/1.3 ui-rounded,"Nunito","Trebuchet MS",system-ui,sans-serif}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #2f7de1;outline-offset:2px}
+
+/* --- Top HUD --- */
+.hud{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:8px;right:8px;display:flex;gap:6px;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:5}
+.hud>*{pointer-events:auto}
+.hl{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0}
+.pc{display:flex;gap:8px;align-items:center;background:#FFFBF3;color:#1b1613;border:3px solid #1b1613;border-radius:20px;padding:3px 12px 3px 3px;box-shadow:0 3px 0 #1b1613;max-width:230px;text-align:left}
+#av{display:flex;flex:none}
+#av svg{width:42px;height:42px;border-radius:50%;border:2px solid #1b1613;background:#bfe3ff}
+.pi{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pi b.n{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.pr{display:flex;gap:6px;align-items:center;font-size:12px}
+.xp{width:54px;height:9px;border:2px solid #1b1613;border-radius:9px;background:#E6DDCC;overflow:hidden}
+.xp i{display:block;height:100%;width:0;background:#4CAF50;transition:width .4s}
+.hp{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#FFFBF3;color:#1b1613;border:3px solid #1b1613;border-radius:99px;padding:4px 11px;font-size:12px;white-space:nowrap;box-shadow:0 2px 0 #1b1613}
+.hp .dt{color:#5e5349;font-weight:800;border-left:2px solid #E6DDCC;padding-left:8px}
+.hr{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.rb{width:38px;height:38px;flex:none;border-radius:50%;border:3px solid #1b1613;background:#FFFBF3;color:#1b1613;font-size:18px;padding:0;box-shadow:0 3px 0 #1b1613}
+.rb.big{width:52px;height:52px;font-size:22px}
+.srv-pill{height:38px;border-radius:99px;border:3px solid #1b1613;background:#FFFBF3;color:#1b1613;padding:0 11px;font-size:12px;font-weight:800;box-shadow:0 3px 0 #1b1613;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.srv-dot{width:8px;height:8px;border-radius:50%;background:#4CAF50;border:1.5px solid #1b1613;flex:none}
+.srv-dot.off{background:#e4572e}
+
+#zoom{position:fixed;right:8px;top:calc(env(safe-area-inset-top,0px) + 60px);display:flex;flex-direction:column;gap:6px;z-index:4}
+
+/* --- Bottom Action Bar (CHECK-IN flanked by Edit & Shop) --- */
+#dock{position:fixed;left:50%;transform:translateX(-50%);width:100%;max-width:520px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);display:flex;align-items:center;justify-content:space-between;padding:0 16px;pointer-events:none;z-index:5}
+#dock>*{pointer-events:auto}
+.cta{border:3px solid #1b1613;border-radius:16px;font-weight:900;color:#1b1613;box-shadow:0 4px 0 #1b1613;padding:11px 30px;font-size:20px;letter-spacing:.4px}
+.cta:active,.btn:active,.rb:active,.srv-pill:active{transform:translateY(2px)}
+.coral{background:#f27d72}
+
+/* --- Placement & Selection Toolbar --- */
+#bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 82px);display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:94vw;background:#FFFBF3;color:#1b1613;border:3px solid #1b1613;border-radius:16px;padding:6px 8px;z-index:6;box-shadow:0 3px 0 #1b1613}
+.btn{background:#4CAF50;color:#1b1613;border:3px solid #1b1613;border-radius:12px;padding:6px 12px;font-weight:800;box-shadow:0 3px 0 #1b1613}
+.btn.alt{background:#E6DDCC}.btn.gold{background:#F5A623}.btn.coral{background:#f27d72}.btn:disabled{opacity:.45}
+
+/* --- Sheets & Modals --- */
+#ov{position:fixed;inset:0;background:rgba(10,25,50,.5);display:flex;align-items:flex-end;justify-content:center;z-index:10}
+.sheet{width:100%;max-width:490px;max-height:86vh;overflow:auto;touch-action:pan-y;background:var(--bg);border:3px solid var(--ink);border-bottom:0;border-radius:20px 20px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px))}
+.sheet.dk{background:#1c2733;color:#f4efe6;border-color:#0e1620}
+.sheet.fx{display:flex;flex-direction:column;overflow:hidden;height:76vh;max-height:680px;min-height:440px}
+@media (max-width:600px){.sheet.fx{height:80vh;height:80dvh;max-height:none;min-height:0}}
+.sc{flex:1;min-height:0;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;padding-right:2px}
+.sh{display:flex;justify-content:space-between;align-items:center;font-size:18px;margin-bottom:10px}
+.x{background:none;border:0;font-size:18px;padding:4px 6px}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.row input,.row select,textarea{font:inherit;color:inherit;background:var(--card);border:2px solid var(--tr);border-radius:12px;padding:8px}
+.row input{flex:1;min-width:130px}
+textarea{width:100%;height:80px;font:12px ui-monospace,monospace}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{flex:1;padding:6px;border:2px solid var(--ink);border-radius:99px;background:var(--card)}
+.tabs [aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+/* --- Quest Cards & Action Pose Monkey Animations --- */
+.qc{position:relative;display:flex;gap:8px;background:var(--card);border:2px solid var(--tr);border-radius:16px;padding:12px 8px 12px 14px;margin-bottom:10px;box-shadow:0 2px 0 var(--tr)}
+.qc.done{opacity:.6}.qc.done b{text-decoration:line-through}
+.qb{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.qb b{font-size:16px;overflow-wrap:anywhere}
+.qb small,.mt{color:var(--mut);font-weight:600}
+.sb{color:#e4572e;font-size:12px}.sb i{font-style:normal;color:#2e9e4f;margin-left:6px}
+.pose-tag{display:inline-block;background:var(--bg);border:1.5px solid var(--tr);border-radius:99px;padding:1px 7px;font-size:11px;color:var(--mut);margin-left:6px}
+.qr{display:flex;gap:10px;align-items:center;margin-top:4px}
+.dots{display:flex;gap:4px}.dots i{width:9px;height:9px;border-radius:50%;background:var(--tr)}.dots i.on{background:#4CAF50}.dots i.td{outline:2px solid var(--mut);outline-offset:1px}
+.art{flex:none;width:72px;align-self:flex-end}
+.art svg{width:100%;display:block;transform-origin:50% 85%}
+@keyframes poseBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
+@keyframes poseLift{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-3.5px) scaleY(1.03)}}
+@keyframes poseWave{0%,100%{transform:rotate(0deg)}40%{transform:rotate(-4deg)}75%{transform:rotate(3deg)}}
+.art.pose-eating svg,.art.pose-reading_writing svg,.art.pose-default svg{animation:poseBob 2.6s ease-in-out infinite}
+.art.pose-workout svg{animation:poseLift 1.5s ease-in-out infinite}
+.art.pose-sleep_zen svg{animation:poseBob 3.8s ease-in-out infinite}
+.art.pose-social svg{animation:poseWave 2.2s ease-in-out infinite}
+
+.tgl{position:absolute;inset:0;width:100%;background:none;border:0;border-radius:16px}
+.mg{position:absolute;top:4px;right:4px;z-index:2;display:flex}
+.fab{position:sticky;bottom:4px;margin:0 0 0 auto;display:block;width:54px;height:54px;border-radius:50%;background:#2f7de1;color:#fff;border:3px solid #1b1613;font-size:30px;line-height:1;box-shadow:0 3px 0 #1b1613;padding:0;z-index:3}
+
+/* --- Shop --- */
+.bal{display:flex;gap:8px;margin-bottom:10px}
+.pp{background:#F5A623;color:#1b1613;border:2px solid #1b1613;border-radius:99px;padding:4px 11px;font-weight:800;white-space:nowrap}
+button.pp:disabled{opacity:.4}
+.cats{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:4px}
+.cats button{flex:none;padding:5px 12px;border-radius:99px;border:2px solid #4b6178;background:none;color:#f4efe6}
+.cats [aria-pressed="true"]{background:#f4efe6;color:#1b1613}
+.si{display:flex;gap:10px;align-items:center;background:#27384a;border:2px solid #0e1620;border-radius:14px;padding:8px;margin-bottom:8px}
+.si img{width:64px;height:64px;border-radius:10px;background:#3b5a78;flex:none}
+.si>div{flex:1;min-width:0}.si small{display:block;color:#a9bccf;font-weight:600}
+.vb{display:inline-block;background:#3b5a78;border-radius:99px;padding:0 8px;font-size:12px;margin:3px 4px 0 0}
+.vs{display:flex;gap:4px;align-items:center}
+
+/* --- Profile, Calendar & Server Switcher --- */
+.gs{display:flex;gap:8px;margin:8px 0}
+.gs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border:3px solid var(--ink);border-radius:14px;background:var(--card)}
+.gs [aria-pressed="true"]{background:#F5A623;color:#1b1613}
+.gs svg{width:48px;height:48px;border-radius:50%;background:#bfe3ff;border:2px solid #1b1613}
+
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center;margin:8px 0 10px}
+.cal small{color:var(--mut)}
+.cd{aspect-ratio:1;border:2px solid var(--tr);border-radius:10px;background:var(--card);padding:0;font-weight:800;color:var(--ink)}
+.cd.g{background:#4CAF50;color:#1b1613;border-color:#1b1613}
+.cd.y{background:#9a9a9a;color:#fff;border-color:#1b1613}
+.cd.r{background:#e4572e;color:#fff;border-color:#1b1613}
+.cd.td{outline:3px solid #2f7de1;outline-offset:1px}
+.cd.fu{opacity:.35}
+.cd.sel{box-shadow:0 0 0 3px var(--ink)}
+.lg{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin-bottom:4px}
+.lg i{display:inline-block;width:12px;height:12px;border-radius:4px;border:2px solid #1b1613;margin-right:4px;vertical-align:-2px}
+
+.sv-card{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--card);border:2px solid var(--tr);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.sv-card.cur{border-color:#4CAF50;box-shadow:0 2px 0 #4CAF50}
+.sv-meta{display:flex;flex-direction:column;gap:3px;min-width:0}
+.sv-peers{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.sv-peer{background:var(--bg);border:1.5px solid var(--tr);border-radius:99px;padding:1px 8px;font-size:11px}
+
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 104px);transform:translate(-50%,-10px);background:#1b1613;color:#F4EFE6;padding:8px 14px;border-radius:12px;opacity:0;transition:.25s;pointer-events:none;max-width:88%;text-align:center;z-index:30}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<canvas id="cv" aria-label="Your island"></canvas>
+
+<header class="hud">
+  <div class="hl">
+    <button class="pc" id="pcard" aria-label="Your profile">
+      <span id="av"></span>
+      <span class="pi">
+        <b class="n" id="hn"></b>
+        <span class="pr"><b id="lv"></b><span class="xp"><i id="xpb"></i></span></span>
+      </span>
+    </button>
+    <div class="hp">
+      <span id="stk"></span>
+      <span id="ban"></span>
+      <span id="sch"></span>
+      <span class="dt" id="dt"></span>
+    </div>
+  </div>
+  <div class="hr">
+    <button class="srv-pill" id="bSrv" aria-label="Server Switcher"><i class="srv-dot" id="sdot"></i><span id="stxt">Server 1</span></button>
+    <button class="rb" id="bCal" aria-label="Calendar">📅</button>
+    <button class="rb" id="bSnd" aria-label="Sound"></button>
+    <button class="rb" id="bSet" aria-label="Settings">⚙️</button>
+  </div>
+</header>
+
+<div id="zoom">
+  <button class="rb" id="zi" aria-label="Zoom in">+</button>
+  <button class="rb" id="zo" aria-label="Zoom out">−</button>
+  <button class="rb" id="zc" aria-label="Recenter">⌂</button>
+</div>
+
+<div id="bar" hidden></div>
+
+<footer id="dock">
+  <button class="rb big" id="bEdit" aria-label="Manage quests">✏️</button>
+  <button class="cta coral" id="bChk">CHECK-IN</button>
+  <button class="rb big" id="bShop" aria-label="Shop">🛒</button>
+</footer>
+
+<div id="ov" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+<div id="toast" role="status"></div>
+
+<script>
+/* ===== isoEngine.js: boxy iso land (13x13 roomy island + sandy beach border), hand-drawn props & scaled monkeys, plus live co-player islands ===== */
+const Iso=(()=>{
+const TW=64,TH=32,N=9,INK='#1b1613',APE_SCALE=0.62;
+const E={ghost:null,sel:null,onTap(){},onHover(){},N};
+const FUR=['#8a5a34','#6b4a3a','#b07a45','#4a4540'];
+/* Archipelago grid offsets for up to 4 online co-players sharing the same server */
+const PEER_OFFSETS=[[13,-2],[-2,13],[13,12],[-13,1]];
+
+let cv,c,W,H,dpr=1,items=[],apes=[],land=new Set(),tiles=[],peers=[],last=0;
+const key=(i,j)=>i+','+j;
+const cam={x:0,y:-20,z:1};
+const P=(x,y)=>[(x-y)*TW/2,(x+y)*TH/2-N*TH/2];
+const U=(sx,sy)=>{
+  const a=(sx-W/2-cam.x)/cam.z/(TW/2);
+  const b=((sy-H/2-cam.y)/cam.z+N*TH/2)/(TH/2);
+  return[Math.floor((a+b)/2),Math.floor((b-a)/2)];
+};
+const m=(a,b)=>((a%b)+b)%b;
+
+/* --- Drawing helpers: boxy land tiles (poly) vs curvy hand-drawn props & monkeys (blob/ell/rod) --- */
+function poly(p,f,st=INK){
+  c.beginPath();
+  p.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));
+  c.closePath();c.fillStyle=f;c.fill();
+  if(st){c.lineWidth=2;c.lineJoin='round';c.strokeStyle=st;c.stroke()}
+}
+function blob(f,fn,lw=2.5){
+  c.beginPath();fn();c.closePath();c.fillStyle=f;c.fill();
+  c.lineWidth=lw;c.lineJoin='round';c.strokeStyle=INK;c.stroke();
+}
+const ell=(x,y,rx,ry,f)=>blob(f,()=>c.ellipse(x,y,rx,ry,0,0,7),2);
+function rod(x1,y1,x2,y2,w,col){
+  c.lineCap='round';c.strokeStyle=INK;c.lineWidth=w+3;
+  c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+  c.strokeStyle=col;c.lineWidth=w;c.stroke();
+}
+function trunk(h,w,f,bend){
+  c.lineCap='round';c.beginPath();c.moveTo(0,5);c.quadraticCurveTo(bend,-h/2,bend*.3,-h);
+  c.strokeStyle=INK;c.lineWidth=w+3;c.stroke();c.strokeStyle=f;c.lineWidth=w;c.stroke();
+}
+const leaf=(len,w,f)=>blob(f,()=>{c.moveTo(0,0);c.quadraticCurveTo(len*.5,-w,len,0);c.quadraticCurveTo(len*.5,w*.4,0,0)},2);
+
+const dockDir=(o,landSet=land)=>{
+  const w=o?[[1,0],[0,1],[-1,0],[0,-1]].filter(([a,b])=>!landSet.has(key(o.x+a,o.y+b))):[];
+  return w.length?(o.f?w[w.length-1]:w[0]):[1,0];
+};
+
+/* Hand-drawn island props */
+const PROPS={
+ grass:(v,t)=>{const sw=Math.sin(t*2)*1.5,cl=['#5fae3e','#7bc043','#3f9b3a'];
+  if(v===5){[[-9,-6,9],[9,-6,9],[0,-12,11]].forEach(([x,y,r],i)=>blob(cl[i],()=>c.ellipse(x,y,r,r*.85,0,0,7),2));return}
+  [-8,0,8].forEach((x,i)=>{const h=12+(v===1?10:0)+i%2*5,s=x>=0?3:-3;blob(cl[(i+v)%3],()=>{c.moveTo(x-3,4);c.quadraticCurveTo(x-1,-h/2,x+s+sw,-h);c.quadraticCurveTo(x+3,-h/2,x+3,4)},2)});
+  if(v===2||v===3){[0,1,2,3,4].forEach(k=>blob(v===2?'#f58fb0':'#ffd23f',()=>c.arc(Math.cos(k*1.26)*3.5,-21+Math.sin(k*1.26)*3.5,3,0,7),1.5));blob('#f5a623',()=>c.arc(0,-21,2,0,7),1.5)}
+  if(v===4){rod(11,4,11,-3,4,'#f4efe6');blob('#e4572e',()=>{c.moveTo(4,-3);c.quadraticCurveTo(11,-15,18,-3)})}},
+ palm:(v,t)=>{
+  if(v===2){trunk(24,8,'#9a6b3f',2);[[-13,-34,14],[13,-34,14],[0,-44,15],[-4,-26,11],[8,-26,10]].forEach(([x,y,r],i)=>blob(i%2?'#4aa844':'#3f9b3a',()=>c.ellipse(x,y,r,r*.8,0,0,7)));return}
+  const h=v?42:54;trunk(h,6,'#9a6b3f',v?3:9);c.save();c.translate(v?1:3,-h);
+  for(let i=0;i<6;i++){c.save();c.rotate(i*1.05+.2+Math.sin(t*1.6+i)*.06);leaf(v?28:36,9,i%2?'#3f9b3a':'#4aa844');c.restore()}
+  if(v)[[-6,3],[0,6],[6,3],[-3,12],[3,12]].forEach(([x,y])=>blob('#f5c542',()=>{c.moveTo(x-2,y);c.quadraticCurveTo(x,y+10,x+3,y+2)},1.8));
+  else{ell(-3,4,3.5,3.5,'#8a5a2b');ell(3,5,3.5,3.5,'#8a5a2b')}c.restore()},
+ hut:v=>{const R=['#e5c76b','#e09a4a','#c9b36a'][v],B=['#c58b52','#a9744a','#b9895a'][v],y=v===2?-10:0;
+  if(v===2){rod(-12,4,-12,-6,5,'#7a4a24');rod(12,4,12,-6,5,'#7a4a24');rod(-16,-6,16,-6,4,'#7a4a24')}
+  blob(B,()=>{c.moveTo(-17,y+3);c.quadraticCurveTo(-19,y-12,-15,y-24);c.lineTo(15,y-24);c.quadraticCurveTo(19,y-12,17,y+3);c.quadraticCurveTo(0,y+9,-17,y+3)});
+  blob('#3b2a1d',()=>{c.moveTo(-5,y+4);c.quadraticCurveTo(-6,y-14,0,y-14);c.quadraticCurveTo(6,y-14,5,y+4);c.quadraticCurveTo(0,y+7,-5,y+4)},2);
+  if(v===1)ell(11,y-12,3.5,3.5,'#bfe3ff');
+  blob(R,()=>{c.moveTo(-27,y-17);c.quadraticCurveTo(-18,y-40,0,y-52);c.quadraticCurveTo(18,y-40,27,y-17);c.quadraticCurveTo(13,y-24,0,y-20);c.quadraticCurveTo(-13,y-24,-27,y-17)});
+  c.strokeStyle=INK;c.lineWidth=1.5;[-9,0,9].forEach(x=>{c.beginPath();c.moveTo(x,y-22);c.quadraticCurveTo(x*.7,y-34,x*.3,y-44);c.stroke()})},
+ tree:(v,t)=>{const L=v?['#e0963b','#e8a94a']:['#3f9b3a','#4aa844'];trunk(46,10,'#8a5a2b',4);
+  [[-16,-54,17],[16,-56,17],[0,-64,16]].forEach(([x,y,r],i)=>blob(L[i%2],()=>c.ellipse(x,y,r,r*.78,0,0,7)));
+  blob('#c58b52',()=>{c.moveTo(-12,-34);c.quadraticCurveTo(-13,-46,-9,-50);c.lineTo(9,-50);c.quadraticCurveTo(13,-46,12,-34);c.quadraticCurveTo(0,-30,-12,-34)});
+  blob('#3b2a1d',()=>c.ellipse(0,-41,3.5,5,0,0,7),1.5);
+  blob(v?'#e4572e':'#cfa94c',()=>{c.moveTo(-17,-48);c.quadraticCurveTo(-8,-62,0,-66);c.quadraticCurveTo(8,-62,17,-48);c.quadraticCurveTo(0,-53,-17,-48)});
+  if(v){rod(13,-34,13,-26,1.5,'#d9c9a0');ell(13,-22+Math.sin(t*2),3,3.5,'#ffd23f')}else rod(-12,-34,-16,-6,2,'#d9c9a0')},
+ pond:(v,t)=>{blob('#b89a58',()=>c.ellipse(0,0,31,16,0,0,7));blob('#2d86d6',()=>c.ellipse(0,1,26,12.5,0,0,7));
+  c.strokeStyle='#bfe3ff';c.lineWidth=1.5;c.beginPath();c.ellipse(-4,2,7+Math.sin(t*2)*2,3,0,0,7);c.stroke();
+  if(v===0)ell(11,-1,6,3,'#4aa844');else{[[-24,-2],[24,1],[-14,12]].forEach(([x,y])=>ell(x,y,5,3.5,'#9aa3ab'));rod(22,-4,22,-16,2,'#5fae3e');rod(26,-3,28,-14,2,'#5fae3e')}},
+ hammock:v=>{const C=v?'#4ea8de':'#f27d72';rod(-22,6,-22,-28,4,'#9a6b3f');rod(22,6,22,-28,4,'#9a6b3f');
+  blob(C,()=>{c.moveTo(-22,-26);c.quadraticCurveTo(0,6,22,-26);c.quadraticCurveTo(0,-12,-22,-26)});ell(-12,-13,6,3,'#fffbf3')},
+ fire:(v,t)=>{const f=Math.sin(t*9)*2;
+  if(v)for(let k=0;k<8;k++){const a=k*.785;ell(Math.cos(a)*13,Math.sin(a)*6.5+2,4.5,3.5,'#9aa3ab')}else{rod(-10,3,8,-3,5,'#7a4a24');rod(10,3,-8,-3,5,'#7a4a24')}
+  blob('#f5a623',()=>{c.moveTo(0,3);c.bezierCurveTo(-13,-2,-9,-14,-1,-26+f-(v?4:0));c.bezierCurveTo(2,-14,13,-4,0,3)});
+  blob('#ffe27a',()=>{c.moveTo(0,1);c.bezierCurveTo(-6,-2,-4,-8,0,-16-f);c.bezierCurveTo(2,-8,6,-2,0,1)},1.5)},
+ flower:(v,t)=>{const sw=Math.sin(t*2)*1.5;
+  if(v===2){[[-12,-.8],[0,0],[12,.8]].forEach(([x,a],i)=>{c.save();c.translate(x,5);c.rotate(-1.57+a+sw*.02);leaf(28-i%2*7,8,i%2?'#3f9b3a':'#5fae3e');c.rotate(.8);leaf(18,5,'#4aa844');c.restore()});return}
+  [[-10,-16],[0,-23],[10,-15]].forEach(([x,h],i)=>{const X=x+sw*.5;rod(x,5,X,h,2,'#3f9b3a');
+   if(v===0){for(let k=0;k<6;k++)ell(X+Math.cos(k*1.05)*4,h+Math.sin(k*1.05)*4,2.6,2.6,'#fffbf3');ell(X,h,2.5,2.5,'#ffd23f')}
+   else if(v===1)blob(i%2?'#ff8a3d':'#e4572e',()=>{c.moveTo(X-5,h+2);c.quadraticCurveTo(X-6,h-8,X,h-7);c.quadraticCurveTo(X+6,h-8,X+5,h+2);c.quadraticCurveTo(X,h+5,X-5,h+2)},1.8);
+   else[0,1,2].forEach(k=>ell(X+(k-1)*3,h+Math.abs(k-1)*3,2.6,3.2,'#8d6fd8'))})},
+ rock:v=>{if(v===1){[[-16,3,11,5],[1,-3,10,5],[15,4,11,5]].forEach(([x,y,rx,ry])=>{ell(x,y+2.5,rx,ry,'#7d868f');ell(x,y,rx,ry,'#b6bdc3')});return}
+  ell(-10,-1,13,10,'#7d868f');ell(9,1,10,8,'#9aa3ab');ell(-1,-7,12,10,v?'#8d969f':'#b6bdc3');
+  if(v)[[-8,-15,7],[5,-11,5]].forEach(([x,y,r])=>blob('#5fae3e',()=>c.ellipse(x,y,r,r*.5,0,0,7),1.5))},
+ sign:v=>{if(v){rod(0,6,0,-46,11,'#8a5a2b');[[-8,'#4ea8de'],[-22,'#f5a623'],[-36,'#e4572e']].forEach(([y,col])=>{ell(0,y,9,7,col);c.fillStyle=INK;c.fillRect(-5,y-3,3,3);c.fillRect(2,y-3,3,3);c.fillRect(-3,y+2,6,2)});blob('#4aa844',()=>{c.moveTo(-9,-50);c.quadraticCurveTo(0,-62,9,-50);c.quadraticCurveTo(0,-54,-9,-50)},1.8);return}
+  ell(0,6,9,3.5,'#9aa3ab');rod(0,6,0,-42,5,'#7a4a24');blob('#c58b52',()=>{c.moveTo(-3,-32);c.quadraticCurveTo(10,-35,22,-30);c.lineTo(27,-25);c.lineTo(22,-20);c.quadraticCurveTo(10,-17,-3,-19)});blob('#d9a066',()=>{c.moveTo(3,-46);c.quadraticCurveTo(-10,-49,-22,-44);c.lineTo(-27,-39);c.lineTo(-22,-34);c.quadraticCurveTo(-10,-31,3,-33)})},
+ book:v=>{const bk=(x,y,col)=>blob(col,()=>{c.moveTo(x-9,y);c.quadraticCurveTo(x-4,y-4,x,y-1);c.quadraticCurveTo(x+4,y-4,x+9,y);c.lineTo(x+9,y-9);c.quadraticCurveTo(x+4,y-12,x,y-9);c.quadraticCurveTo(x-4,y-12,x-9,y-9)},1.8);
+  if(v===0){blob('#9a6b3f',()=>{c.moveTo(-13,4);c.lineTo(-13,-10);c.lineTo(13,-10);c.lineTo(13,4);c.quadraticCurveTo(0,10,-13,4)});ell(0,-10,13,6,'#d9a066');bk(0,-8,'#fffbf3')}
+  else if(v===1){ell(0,5,25,9,'#c9b36a');ell(0,2,13,5,'#4ea8de');ell(1,-3,12,5,'#f5a623');ell(-1,-8,11,5,'#e4572e');ell(0,-9,6,2,'#fffbf3')}
+  else{rod(-18,4,-18,-28,4,'#7a4a24');rod(18,4,18,-28,4,'#7a4a24');rod(-22,-10,22,-10,8,'#c58b52');bk(0,-12,'#fffbf3');blob('#4aa844',()=>{c.moveTo(-27,-26);c.quadraticCurveTo(0,-48,27,-26);c.quadraticCurveTo(0,-34,-27,-26)})}},
+ gym:v=>{ell(-17,6,6,2.5,'#9aa3ab');ell(17,6,6,2.5,'#9aa3ab');
+  if(!v){rod(-17,6,-17,-52,5,'#7a4a24');rod(17,6,17,-52,5,'#7a4a24');rod(-19,-50,19,-50,4,'#6b7078');return}
+  ell(0,5,26,9,'#c9b36a');ell(-9,-3,9,8,'#4b4f55');rod(-14,-8,-14,-15,3,'#4b4f55');rod(-4,-8,-4,-15,3,'#4b4f55');rod(-14,-15,-4,-15,3,'#4b4f55');rod(7,2,21,2,3,'#6b7078');ell(7,2,4,5,'#4b4f55');ell(21,2,4,5,'#4b4f55')},
+ banana:v=>{const bn=(x,y)=>blob('#f5c542',()=>{c.moveTo(x-5,y);c.quadraticCurveTo(x,y+7,x+6,y-2);c.quadraticCurveTo(x+1,y+2,x-5,y)},1.5);
+  if(!v){rod(-19,6,-19,-34,4,'#7a4a24');rod(19,6,19,-34,4,'#7a4a24');blob('#c58b52',()=>{c.moveTo(-23,4);c.lineTo(-23,-8);c.quadraticCurveTo(0,-4,23,-8);c.lineTo(23,4);c.quadraticCurveTo(0,10,-23,4)});bn(-10,-10);bn(2,-11);bn(13,-10);
+   blob('#e4572e',()=>{c.moveTo(-27,-30);c.quadraticCurveTo(0,-50,27,-30);c.quadraticCurveTo(14,-24,0,-30);c.quadraticCurveTo(-14,-24,-27,-30)});return}
+  blob('#c58b52',()=>{c.moveTo(-16,4);c.lineTo(-18,-10);c.quadraticCurveTo(0,-7,18,-10);c.lineTo(16,4);c.quadraticCurveTo(0,9,-16,4)});[[-9,-12,'#f5c542'],[3,-14,'#7bc043'],[11,-11,'#e4572e'],[-1,-9,'#f5c542']].forEach(([x,y,col])=>ell(x,y,5,5,col));bn(-4,-17)},
+ torch:(v,t)=>{const f=Math.sin(t*9+v)*1.5,fl=(y,s=1)=>{blob('#f5a623',()=>{c.moveTo(0,y+3);c.bezierCurveTo(-8*s,y,-6*s,y-9*s,0,y-17*s+f);c.bezierCurveTo(2*s,y-9*s,8*s,y-2*s,0,y+3)},1.8);blob('#ffe27a',()=>{c.moveTo(0,y+2);c.bezierCurveTo(-3,y,-2,y-5,0,y-10-f);c.bezierCurveTo(1,y-5,3,y,0,y+2)},1.2)};
+  if(v===0){rod(0,6,0,-32,4,'#9a6b3f');blob('#7a4a24',()=>{c.moveTo(-6,-32);c.quadraticCurveTo(0,-24,6,-32);c.lineTo(8,-38);c.quadraticCurveTo(0,-34,-8,-38)});fl(-36)}
+  else if(v===1){rod(0,6,0,-38,4,'#3b2a1d');rod(0,-38,11,-38,3,'#3b2a1d');ell(11,-30,5.5,8,'#ffe27a');ell(11,-29+f*.2,2.5,4,'#f5a623')}
+  else{rod(0,6,0,-30,4,'#9a6b3f');ell(0,-41,10,12,'#ff9aa8');ell(0,-40,5,7,'#ffe27a');rod(-9,-41,9,-41,1,INK)}},
+ tower:v=>{const W='#7a4a24',T=v?-76:-64;rod(-14,5,-18,-46,5,W);rod(14,5,18,-46,5,W);rod(-15,-8,16,-34,2.5,'#a9744a');rod(15,-8,-16,-34,2.5,'#a9744a');rod(-6,5,-4,-44,2.5,'#c58b52');rod(6,5,8,-44,2.5,'#c58b52');
+  blob('#c58b52',()=>{c.moveTo(-25,-45);c.quadraticCurveTo(0,-36,25,-45);c.lineTo(22,-50);c.quadraticCurveTo(0,-57,-22,-50)});
+  rod(-21,-50,-21,T,3,W);rod(21,-50,21,T,3,W);
+  if(v)blob('#e09a4a',()=>{c.moveTo(-29,T+2);c.quadraticCurveTo(-15,T-22,0,T-32);c.quadraticCurveTo(15,T-22,29,T+2);c.quadraticCurveTo(0,T-6,-29,T+2)});else rod(-21,-62,21,-62,3,W)},
+ dock:(v,t,o,landSet)=>{const[d0,d1]=dockDir(o,landSet),pj=(s,w)=>{const a=d0*s-d1*w,b=d1*s+d0*w;return[(a-b)*32,(a+b)*16]},ks=[0,.2,.4,.6,.8,1,1.2];if(d0+d1<0)ks.reverse();
+  ks.forEach(s=>{const A=pj(s,-.26),B=pj(s,.26);rod(A[0],A[1],B[0],B[1],7,Math.round(s*5)%2?'#b9895a':'#c58b52')});
+  [-.3,.3].forEach(w=>{const p=pj(1.25,w);rod(p[0],p[1]+4,p[0],p[1]-12,4,'#7a4a24')});
+  if(v){const p=pj(.55,.34);ell(p[0],p[1]-4,6,7,'#9a6b3f');ell(p[0],p[1]-9,6,3,'#c58b52')}},
+ land:()=>{poly([[-32,0],[0,16],[0,30],[-32,14]],'#8a6a45');poly([[0,16],[32,0],[32,14],[0,30]],'#76583a');poly([[0,-16],[32,0],[0,16],[-32,0]],'#92c862','rgba(27,22,19,.6)')},
+ monkey:(v,t)=>{c.save();c.scale(.8,.8);drawApe('idle',v,t,false,false);c.restore()}
+};
+
+/* Hand-drawn monkey art (scaled naturally relative to tiles & buildings via APE_SCALE) */
+function drawApe(pose,v,t,talk,th){
+ const F=FUR[v%FUR.length],K='#f3d9b8',sit=pose==='sit'||pose==='eat'||pose==='read';
+ if(pose==='nap'){ell(0,-6,13,7,F);ell(-11,-9,7,6,F);ell(-12,-8,4,3,K);c.fillStyle=INK;c.font='800 11px sans-serif';c.fillText('z',-2,-22+Math.sin(t*2)*2);return}
+ const bob=pose==='walk'?-Math.abs(Math.sin(t*8))*3:pose==='workout'?-Math.abs(Math.sin(t*3))*2:pose==='pullup'?-(20+Math.abs(Math.sin(t*2.5))*10):Math.sin(t*2)*-.8;
+ const by=sit?-8:-12,bry=sit?8:11,hy=sit?-24:-30;
+ c.save();c.translate(0,bob);
+ c.lineCap='round';c.beginPath();c.moveTo(-7,by+4);c.bezierCurveTo(-23,by+2,-21,by-17,-12,by-12+Math.sin(t*3)*3);c.strokeStyle=INK;c.lineWidth=6;c.stroke();c.strokeStyle=F;c.lineWidth=3;c.stroke();
+ if(sit){ell(-6,2,5,3,F);ell(6,2,5,3,F)}else if(pose==='walk'){const s=Math.sin(t*8)*3;ell(-5+s,2,4,3,F);ell(5-s,2,4,3,F)}else{ell(-5,2,4,3,F);ell(5,2,4,3,F)}
+ ell(0,by,9,bry,F);ell(-8,hy,3.5,3.5,F);ell(8,hy,3.5,3.5,F);ell(0,hy,8,8,F);ell(0,hy+2,5.5,4.5,K);
+ c.fillStyle=INK;c.fillRect(-3.5,hy,2,2.5);c.fillRect(1.5,hy,2,2.5);
+ c.lineWidth=1.5;c.strokeStyle=INK;c.beginPath();c.arc(0,hy+3.5,2,.2,2.9);c.stroke();
+ const sw=Math.sin(t*8)*4;let L=[-9,by+3],R=[9,by+3];
+ if(pose==='walk'){L=[-9,by+sw];R=[9,by-sw]}
+ else if(pose==='eat'){L=[-8,by];R=[5,hy+5+Math.sin(t*6)*2]}
+ else if(pose==='read'){L=[-8,by-3];R=[8,by-3]}
+ else if(pose==='workout'){const u=Math.abs(Math.sin(t*3))*9;L=[-10,hy-6-u];R=[10,hy-6-u]}
+ else if(pose==='climb'){const s=Math.sin(t*6)*5;L=[7,hy-8+s];R=[7,hy-8-s]}
+ else if(pose==='pullup'){L=[-8,-50-bob];R=[8,-50-bob]}
+ else if(pose==='kettle'){L=[-8,by+3];R=[8,by+6-Math.abs(Math.sin(t*3))*16]}
+ rod(-7,by-6,L[0],L[1],5,F);rod(7,by-6,R[0],R[1],5,F);
+ if(pose==='eat')blob('#f5c542',()=>{c.moveTo(R[0]-3,R[1]+3);c.quadraticCurveTo(R[0]+7,R[1]+3,R[0]+7,R[1]-7);c.quadraticCurveTo(R[0]+3,R[1]-1,R[0]-3,R[1]-1)},1.8);
+ if(pose==='read'){const f=Math.sin(t*1.5)>.8?2:0;blob('#fffbf3',()=>{c.moveTo(-9,by-1);c.quadraticCurveTo(-4,by-5,0,by-2);c.quadraticCurveTo(4,by-5+f,9,by-1);c.lineTo(9,by-11);c.quadraticCurveTo(4,by-14+f,0,by-11);c.quadraticCurveTo(-4,by-14,-9,by-11)},1.8);rod(0,by-2,0,by-11,1,INK)}
+ if(pose==='workout'){rod(L[0],L[1],R[0],R[1],3,'#6b7078');ell(L[0],L[1],4,4.5,'#4b4f55');ell(R[0],R[1],4,4.5,'#4b4f55')}
+ if(pose==='kettle'){ell(R[0],R[1]+3,5,5.5,'#4b4f55');rod(R[0]-3,R[1]-2,R[0]+3,R[1]-2,2,'#4b4f55')}
+ if(th){const y=hy-14,w=Math.sin(t*2);ell(9,y+10,1.6,1.6,'#fff');ell(12,y+4,2.4,2.4,'#fff');blob('#fff',()=>c.ellipse(18,y-6,11,8,0,0,7),1.8);c.fillStyle='#f5a623';c.font='800 11px sans-serif';c.fillText(w>.3?'★':w>-.4?'♪':'✦',13,y-2)}
+ if(talk){blob('#fff',()=>c.ellipse(11,hy-15,9,6,0,0,7),1.8);c.fillStyle='#e4572e';c.font='800 10px sans-serif';c.fillText(Math.sin(t*2)>0?'♥':'…',7,hy-12)}
+ c.restore();
+}
+
+function ape(a,t,ox=0,oy=0){
+  const[sx,sy]=P(a.x+ox,a.y+oy);
+  c.save();c.translate(sx,sy);
+  if(a.pose==='nap')c.translate(0,-9);
+  if(a.h)c.translate(0,-a.h);
+  if(a.act==='climb'&&a.pose==='climb')c.translate(-3,-(Math.sin(t*1.2+a.x)*.5+.5)*28);
+  c.scale(a.face*APE_SCALE,APE_SCALE);
+  drawApe(a.pose,a.v,t,a.talk,a.pose==='read'&&!!a.spot&&a.spot.type==='book');
+  c.restore();
+}
+
+/* --- Boxy isometric tile renderer with sandy beach outer ring & grassy interior --- */
+function tile(i,j,ox=0,oy=0,landSet=land){
+  const L=(a,b)=>landSet.has(key(a,b));
+  const ed=!(L(i-1,j)&&L(i+1,j)&&L(i,j-1)&&L(i,j+1));
+  const a=P(i+ox,j+oy),b=P(i+1+ox,j+oy),d=P(i+1+ox,j+1+oy),e=P(i+ox,j+1+oy),dn=p=>[p[0],p[1]+14];
+  if(!L(i,j+1))poly([e,d,dn(d),dn(e)],ed?'#c9ae6c':'#8a6a45');
+  if(!L(i+1,j))poly([d,b,dn(b),dn(d)],ed?'#b89a58':'#76583a');
+  poly([a,b,d,e],ed?((i+j)&1?'#efdfa8':'#e8d598'):((i+j)&1?'#9fd16e':'#92c862'),'rgba(27,22,19,.45)');
+}
+const hl=(i,j,col)=>{c.globalAlpha=.45;poly([P(i,j),P(i+1,j),P(i+1,j+1),P(i,j+1)],col,null);c.globalAlpha=1};
+function prop(type,x,y,f,v,t,al,ox=0,oy=0,landSet=land){
+  const[sx,sy]=P(x+.5+ox,y+.5+oy);
+  c.save();c.translate(sx,sy);
+  if(f&&type!=='dock')c.scale(-1,1);
+  if(al)c.globalAlpha=al;
+  PROPS[type](v||0,t,{x,y,f},landSet);
+  c.restore();
+}
+const soft=o=>o.type==='grass'||o.type==='flower'||(o.type==='rock'&&o.v===1);
+const blocked=(i,j)=>items.some(o=>o.x===i&&o.y===j&&!soft(o));
+
+/* --- Monkey AI: stroll across valid island tiles & animate eating, reading, working out, climbing, napping --- */
+const DUR={idle:2,eat:5,read:7,workout:5,pullup:6,kettle:6,climb:6,sit:8,nap:12,chat:5,dock:9,perch:9,ascend:2.6,descend:2.2};
+const go=(a,x,y,next)=>{a.tx=x;a.ty=y;a.next=next;a.mode='walk'};
+const setAct=(a,act)=>{a.mode='do';a.act=act;a.timer=DUR[act]+Math.random()*3};
+function choose(a){
+  a.spot=null;
+  const r=Math.random(),pk=q=>q[Math.floor(Math.random()*q.length)];
+  const free=ty=>items.filter(o=>o.type===ty&&!apes.some(b=>b!==a&&b.spot===o));
+  const trees=items.filter(o=>o.type==='palm'||o.type==='tree');
+  const warm=items.filter(o=>o.type==='fire'||o.type==='torch');
+  const mate=apes.find(b=>b!==a&&b.mode==='do'&&b.act==='idle'&&Math.hypot(b.x-a.x,b.y-a.y)<3.2);
+  const at=(o,act,dx,dy)=>{a.spot=o;go(a,o.x+.5+dx,o.y+.5+dy,act)};
+  if(r<.18){
+    const valid=tiles.filter(([i,j])=>!blocked(i,j));
+    const q=pk(valid);
+    if(q)go(a,q[0]+.5,q[1]+.5,'idle');
+  }
+  else if(r<.30){const o=pk(free('banana'));o?at(o,'eat',0,.36):go(a,a.x,a.y,'eat')}
+  else if(r<.42){const o=pk(free('book'));o?at(o,'read',.04,.36):go(a,a.x,a.y,'read')}
+  else if(r<.52){const o=pk(free('gym'));o?at(o,o.v?'kettle':'pullup',0,o.v?.36:.18):go(a,a.x,a.y,'workout')}
+  else if(r<.62&&trees.length){const o=pk(trees);a.spot=o;go(a,o.x+.5,o.y+.5,'climb')}
+  else if(r<.70&&warm.length){
+    const o=pk(warm),s=pk([[1,0],[0,-1],[-1,0],[0,1]].map(([x,y])=>[o.x+x,o.y+y]).filter(([i,j])=>land.has(key(i,j))&&!blocked(i,j)));
+    s?go(a,s[0]+.5,s[1]+.5,'sit'):go(a,a.x,a.y,'idle');
+  }
+  else if(r<.76&&free('hammock').length){const o=pk(free('hammock'));a.spot=o;go(a,o.x+.5,o.y+.5,'nap')}
+  else if(r<.82&&free('tower').length)at(pk(free('tower')),'ascend',0,0);
+  else if(r<.88&&free('dock').length){const o=pk(free('dock')),[x,y]=dockDir(o);at(o,'dock',x*.75,y*.75)}
+  else if(mate){go(a,mate.x-.65,mate.y,'chat');mate.act='chat';mate.timer=DUR.chat+2;mate.partner=a;a.partner=mate}
+  else go(a,a.x,a.y,'idle');
+}
+function stepList(list,dt,allowAi){
+  list.forEach(a=>{
+    if(a.mode==='walk'){
+      const dx=a.tx-a.x,dy=a.ty-a.y,d=Math.hypot(dx,dy);
+      if(d>.05){const s=Math.min(d,.95*dt);a.x+=dx/d*s;a.y+=dy/d*s;a.face=dx-dy>=0?1:-1}
+      else if(allowAi)setAct(a,a.next);
+      else{a.mode='do';a.act=a.next||'idle';a.timer=2+Math.random()*2}
+    }else{
+      a.timer-=dt;
+      if(a.act==='chat'&&a.partner)a.face=(a.partner.x-a.x)-(a.partner.y-a.y)>=0?1:-1;
+      if(a.timer<=0){
+        a.partner=null;
+        if(!allowAi){
+          /* Gentle ambient stroll on co-player islands */
+          const acts=['idle','eat','read','workout'];
+          if(Math.random()<.55){
+            const nx=Math.max(1,Math.min(N-2,a.x+(Math.random()-.5)*4));
+            const ny=Math.max(1,Math.min(N-2,a.y+(Math.random()-.5)*4));
+            go(a,nx,ny,acts[Math.floor(Math.random()*acts.length)]);
+          }else setAct(a,acts[Math.floor(Math.random()*acts.length)]);
+        }else if(a.act==='ascend')setAct(a,'perch');
+        else if(a.act==='perch')setAct(a,'descend');
+        else choose(a);
+      }
+    }
+    const up=a.mode==='do'&&(a.act==='ascend'||a.act==='perch')&&a.spot&&items.includes(a.spot)?45:0;
+    a.h+=(up-a.h)*Math.min(1,dt*2.2);
+    a.pose=a.mode==='walk'?'walk':({chat:'idle',idle:'idle',dock:'sit',perch:'sit',ascend:'climb',descend:'climb'}[a.act]||a.act);
+    a.talk=a.mode==='do'&&(a.act==='chat'||(a.act==='sit'&&list.some(b=>b!==a&&b.act==='sit'&&b.mode==='do'&&Math.hypot(b.x-a.x,b.y-a.y)<2.2)));
+  });
+}
+
+function renderIsland(islandTiles,islandLand,islandItems,islandApes,ox,oy,t,label){
+  /* Shallow turquoise reef halo */
+  c.globalAlpha=.32;
+  poly([P(ox-1,oy-1),P(ox+N+1,oy-1),P(ox+N+1,oy+N+1),P(ox-1,oy+N+1)],'#6fc7e8',null);
+  c.globalAlpha=1;
+
+  islandTiles.forEach(([i,j])=>tile(i,j,ox,oy,islandLand));
+  if(ox===0&&oy===0&&E.sel)hl(E.sel.x,E.sel.y,'#f5c542');
+
+  const L=[];
+  islandItems.forEach(o=>L.push([o.x+o.y+(o.type==='dock'?.05:1),()=>prop(o.type,o.x,o.y,o.f,o.v,t,0,ox,oy,islandLand)]));
+  islandApes.forEach(a=>L.push([a.x+a.y+.1,()=>ape(a,t,ox,oy)]));
+  L.sort((p,q)=>p[0]-q[0]).forEach(e=>e[1]());
+
+  /* Warm firelight & lantern glow */
+  c.globalCompositeOperation='lighter';
+  islandItems.filter(o=>o.type==='fire'||o.type==='torch').forEach(o=>{
+    const tk=o.type==='torch',[sx,sy]=P(o.x+.5+ox,o.y+.5+oy);
+    const r=(tk?56:92)+Math.sin(t*5+o.x)*(tk?3:6),oy2=tk?-34:-10;
+    const rg=tk&&o.v===2?'255,150,170':tk?'255,196,90':'255,170,60';
+    const gr=c.createRadialGradient(sx,sy+oy2,4,sx,sy+oy2,r);
+    gr.addColorStop(0,'rgba('+rg+','+(tk?.42:.48)+')');
+    gr.addColorStop(1,'rgba('+rg+',0)');
+    c.fillStyle=gr;c.beginPath();c.arc(sx,sy+oy2,r,0,7);c.fill();
+  });
+  c.globalCompositeOperation='source-over';
+
+  /* Floating nameplate for online co-player islands */
+  if(label){
+    const[bx,by]=P(ox+N/2,oy-0.75);
+    c.font='800 13px ui-rounded,"Nunito",system-ui,sans-serif';
+    const tw=c.measureText(label).width+22;
+    blob('#FFFBF3',()=>{c.roundRect(bx-tw/2,by-14,tw,26,13)},2.2);
+    c.fillStyle=INK;c.textAlign='center';c.textBaseline='middle';
+    c.fillText(label,bx,by-1);
+    c.textAlign='start';c.textBaseline='alphabetic';
+  }
+}
+
+function frame(now){
+  const t=now/1000,dt=Math.min(.05,(now-last)/1000);last=now;
+  stepList(apes,dt,true);
+  peers.forEach(p=>stepList(p.apes,dt,false));
+
+  c.setTransform(dpr,0,0,dpr,0,0);
+  const g=c.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#1e6bb8');g.addColorStop(1,'#2575c4');
+  c.fillStyle=g;c.fillRect(0,0,W,H);
+
+  /* Animated ocean wave ripples */
+  c.strokeStyle='rgba(255,255,255,.22)';c.lineWidth=2;c.lineCap='round';
+  for(let k=0;k<48;k++){
+    const x=m(k*97.3+t*(6+k%3*3)+cam.x*.8,W+80)-40,y=m(k*61.7+cam.y*.8,H);
+    c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+8,y-4,x+16,y);c.quadraticCurveTo(x+24,y+4,x+32,y);c.stroke();
+  }
+
+  c.setTransform(dpr*cam.z,0,0,dpr*cam.z,dpr*(W/2+cam.x),dpr*(H/2+cam.y));
+
+  /* Depth-sort all active islands (player's own island at 0,0 + online server co-players) */
+  const islands=[{ox:0,oy:0,tiles,land,items,apes,label:null}];
+  peers.forEach(p=>islands.push({ox:p.ox,oy:p.oy,tiles:p.tiles,land:p.land,items:p.items,apes:p.apes,label:p.label}));
+  islands.sort((a,b)=>(a.ox+a.oy)-(b.ox+b.oy));
+  islands.forEach(isl=>renderIsland(isl.tiles,isl.land,isl.items,isl.apes,isl.ox,isl.oy,t,isl.label));
+
+  const gh=E.ghost;
+  if(gh){hl(gh.i,gh.j,gh.ok?'#7CFC00':'#ff5a4f');prop(gh.type,gh.i,gh.j,gh.f,gh.v,t,.7)}
+  requestAnimationFrame(frame);
+}
+
+function size(){dpr=window.devicePixelRatio||1;W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr}
+const zoom=f=>{cam.z=Math.max(.35,Math.min(2.4,cam.z*f))};
+E.zoom=zoom;
+E.fit=()=>{
+  cam.x=0;cam.y=-18;
+  cam.z=Math.max(.42,Math.min(1.35,Math.min(W/(N*TW*.92),H/(N*TH*2.2))));
+};
+E.panToPeer=idx=>{
+  const p=peers[idx];
+  if(!p){E.fit();return}
+  const[sx,sy]=P(p.ox+N/2,p.oy+N/2);
+  cam.z=Math.max(.48,Math.min(1.1,cam.z));
+  cam.x=-sx*cam.z;
+  cam.y=-sy*cam.z;
+};
+E.isLand=(i,j)=>land.has(key(i,j));
+
+function buildGrid(extra){
+  const lSet=new Set(),tList=[];
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++)tList.push([i,j]);
+  if(extra)tList.push([extra.x,extra.y]);
+  tList.forEach(([i,j])=>lSet.add(key(i,j)));
+  tList.sort((a,b)=>a[0]+a[1]-b[0]-b[1]||a[0]-b[0]);
+  return{lSet,tList};
+}
+
+E.setWorld=(it,extra,mons)=>{
+  items=it;
+  const g=buildGrid(extra);
+  land=g.lSet;tiles=g.tList;
+  apes=apes.filter(a=>mons.some(q=>q.id===a.id));
+  mons.forEach(q=>{
+    const a=apes.find(x=>x.id===q.id);
+    if(a)a.v=q.v;
+    else apes.push({id:q.id,v:q.v,x:q.x+.5,y:q.y+.5,tx:q.x+.5,ty:q.y+.5,mode:'do',act:'idle',timer:1+Math.random()*2,face:1,spot:null,pose:'idle',h:0});
+  });
+};
+
+/* Update active online co-player islands on the current server */
+E.setPeers=list=>{
+  const active=(list||[]).slice(0,PEER_OFFSETS.length);
+  peers=active.map((p,idx)=>{
+    const[ox,oy]=PEER_OFFSETS[idx];
+    const g=buildGrid(p.extraLand||null);
+    const prev=peers.find(x=>x.id===p.id);
+    const mons=(Array.isArray(p.monkeys)&&p.monkeys.length?p.monkeys:[{id:'p0',x:6,y:6,v:0}]).map((q,mi)=>{
+      const old=prev&&prev.apes[mi];
+      return old?{...old,v:q.v||0}:{id:q.id||('m'+mi),v:q.v||0,x:(q.x??6)+.5,y:(q.y??6)+.5,tx:(q.x??6)+.5,ty:(q.y??6)+.5,mode:'do',act:'idle',timer:1+Math.random()*2,face:1,spot:null,pose:'idle',h:0};
+    });
+    return{
+      id:p.id,
+      ox,oy,
+      tiles:g.tList,
+      land:g.lSet,
+      items:Array.isArray(p.placedItems)?p.placedItems:[],
+      apes:mons,
+      label:`🏝️ ${p.name||'Explorer'} · Lv ${p.level||1}`
+    };
+  });
+};
+
+const TC={};
+E.thumb=(type,v)=>{
+  const k=type+v;if(TC[k])return TC[k];
+  const o=document.createElement('canvas');o.width=o.height=96;
+  const old=c;c=o.getContext('2d');
+  c.translate(48,type==='land'?46:type==='dock'?56:86);
+  const sc=type==='tower'?.72:type==='sign'?.8:.9;c.scale(sc,sc);
+  try{PROPS[type](v,1)}catch(e){}
+  c=old;return TC[k]=o.toDataURL();
+};
+
+E.init=canvas=>{
+  cv=canvas;c=cv.getContext('2d');size();addEventListener('resize',size);
+  const pts=new Map();let drag=null,pinch=0;
+  const pd=()=>{const v=[...pts.values()];return v.length<2?0:Math.hypot(v[0].x-v[1].x,v[0].y-v[1].y)};
+  cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pts.size===1)drag={moved:0};pinch=pd()});
+  cv.addEventListener('pointermove',e=>{
+    const p=pts.get(e.pointerId);
+    if(!p){if(e.pointerType==='mouse'){const q=U(e.clientX,e.clientY);E.onHover(q[0],q[1])}return}
+    const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+    if(pts.size===1){cam.x+=dx;cam.y+=dy;drag.moved+=Math.abs(dx)+Math.abs(dy)}
+    else if(pts.size===2){const d=pd();if(pinch)zoom(d/pinch);pinch=d;drag.moved=99}
+  });
+  const up=e=>{
+    if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);pinch=0;
+    if(drag&&drag.moved<8&&pts.size===0&&e.type==='pointerup'){const q=U(e.clientX,e.clientY);E.onTap(q[0],q[1])}
+    if(!pts.size)drag=null;
+  };
+  cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+  cv.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY<0?1.1:.9)},{passive:false});
+  E.fit();requestAnimationFrame(frame);
+};
+return E;
+})();
+</script>
+
+<script>
+/* ===== habits.js: state, local persistence, quest-to-pose detection, local-timezone daily reset, calendar ===== */
+const Game=(()=>{
+const KEY='monkeHabitSave',OLD='monkeHavenSave';
+const xpFor=l=>Math.floor(100*Math.pow(1.25,l-1));
+const DIFF={easy:{xp:15,ban:3,sch:2},medium:{xp:30,ban:6,sch:5},hard:{xp:50,ban:12,sch:10}};
+const POSES=['eating','workout','reading_writing','sleep_zen','social','default'];
+const POSE_LABELS={
+  auto:'Auto-detect pose',
+  eating:'🍌 Eating / Drinking',
+  workout:'🏋️ Workout / Fitness',
+  reading_writing:'📖 Reading / Writing',
+  sleep_zen:'🧘 Sleep / Zen / Rest',
+  social:'👋 Social / Friends',
+  default:'🐒 Default / Thinking'
+};
+
+const SHOP=[
+ {id:'palm',name:'Palm & banana trees',cat:'Trees',cur:'b',price:30,vars:3,desc:'Coconuts, bananas or a round canopy.'},
+ {id:'tree',name:'Treehouse',cat:'Trees',cur:'b',price:200,vars:2,desc:'Big canopy, tiny house. Monkeys climb it.'},
+ {id:'grass',name:'Grass tuft',cat:'Small Decorations',cur:'b',price:10,vars:6,desc:'Flowers, mushrooms and bushes.'},
+ {id:'pond',name:'Pond',cat:'Small Decorations',cur:'s',price:20,vars:2,desc:'Lily pad or rocks and reeds.'},
+ {id:'fire',name:'Campfire',cat:'Small Decorations',cur:'s',price:30,vars:2,desc:'Monkeys gather round. Warm glow.'},
+ {id:'hammock',name:'Hammock',cat:'Small Decorations',cur:'s',price:45,vars:2,desc:'A nap spot for one monkey.'},
+ {id:'flower',name:'Wildflowers & ferns',cat:'Small Decorations',cur:'b',price:8,vars:4,vn:['Daisies','Poppies','Ferns','Bluebells'],desc:'Cheap ground colour next to grass tufts.'},
+ {id:'rock',name:'Boulders & stepping stones',cat:'Small Decorations',cur:'b',price:15,vars:3,vn:['Boulders','Stepping stones','Mossy rock'],desc:'Path accents. Monkeys can walk over stepping stones.'},
+ {id:'sign',name:'Signpost & totem',cat:'Small Decorations',cur:'b',price:40,vars:2,vn:['Signpost','Wooden totem'],desc:'A landmark for your island.'},
+ {id:'book',name:'Reading spot',cat:'Small Decorations',cur:'s',price:25,vars:3,vn:['Book log','Book stack','Reading bench'],desc:'Monkeys sit down and read.'},
+ {id:'gym',name:'Workout spot',cat:'Small Decorations',cur:'s',price:35,vars:2,vn:['Pull-up bar','Kettlebell'],desc:'Monkeys pull up and lift.'},
+ {id:'banana',name:'Banana stand',cat:'Small Decorations',cur:'b',price:60,vars:2,vn:['Banana stand','Fruit crate'],desc:'Snack stop. Monkeys eat here.'},
+ {id:'torch',name:'Tiki torch & lantern',cat:'Small Decorations',cur:'s',price:15,vars:3,vn:['Tiki torch','Lantern post','Paper lantern'],desc:'Warm glow, like the campfire.'},
+ {id:'hut',name:'Hut',cat:'Buildings',cur:'s',price:70,vars:3,desc:'Thatched, spicy or on stilts.'},
+ {id:'tower',name:'Watchtower',cat:'Buildings',cur:'s',price:90,vars:2,vn:['Open lookout','Roofed watchtower'],desc:'Monkeys climb up and keep watch.'},
+ {id:'dock',name:'Dock',cat:'Buildings',cur:'s',price:60,vars:2,vn:['Plain pier','Pier with barrel'],desc:'Goes on a water-edge tile. Monkeys sit and watch the waves.'},
+ {id:'monkey',name:'Monkey',cat:'Special',cur:'s',price:100,vars:4,desc:'A new friend with its own routine.'},
+ {id:'land',name:'Land piece',cat:'Special',cur:'s',price:150,vars:1,once:true,desc:'One extra tile. One per island.'}
+];
+
+/* Local timezone YYYY-MM-DD formatter (never uses UTC toISOString slicing) */
+const pad=x=>String(x).padStart(2,'0');
+function getLocalDateKey(date=new Date()){
+  return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+}
+const addDays=(s,k)=>{const[y,m,d]=s.split('-').map(Number);return getLocalDateKey(new Date(y,m-1,d+k))};
+const uid=()=>Math.random().toString(36).slice(2,8);
+
+/* Automatic Quest-to-Action Pose Detector (case-insensitive keyword matching) */
+function detectPose(title='',desc=''){
+  const txt=`${title} ${desc}`.toLowerCase();
+  if(/\b(?:workout|workouts|gym|move|moving|movement|squat|squats|push-?ups?|weights?|jog|jogging|exercise|exercises|exercising|stretch|stretches|stretching|run|running|cardio|lift|lifting)\b/.test(txt))return'workout';
+  if(/\b(?:eat|eating|breakfast|lunch|dinner|meal|meals|creatine|water|hydrate|hydration|drink|drinking|snack|snacks|food|nutrition|protein)\b/.test(txt))return'eating';
+  if(/\b(?:text|texting|texts|friends?|message|messages|messaging|call|calling|calls|check-?in|socialize)\b/.test(txt))return'social';
+  if(/\b(?:read|reading|journal|journalling|journaling|write|writing|list|lists|learn|learning|sentence|sentences|language|languages|audiobook|audiobooks|study|studying|review|reviewing|book|books|creative\s+project|project)\b/.test(txt))return'reading_writing';
+  if(/\b(?:sleep|asleep|bedtime|bed|morning\s+sunlight|sunlight|wake\s+up|wake|meditate|meditating|meditation|breaks?|rest|resting|breathe|breathing|nap|relax)\b/.test(txt))return'sleep_zen';
+  return'default';
+}
+
+const mk=(title,difficulty,desc='',manualPose='auto')=>{
+  const pose=manualPose&&manualPose!=='auto'&&POSES.includes(manualPose)?manualPose:detectPose(title,desc);
+  return{
+    id:uid(),title,desc,difficulty,
+    done:false,completedToday:false,
+    total:0,log:{},gain:0,
+    actionPose:pose,
+    poseManual:manualPose&&manualPose!=='auto'?manualPose:null
+  };
+};
+const it=(type,x,y,v=0)=>({id:uid(),type,x,y,f:0,v});
+
+/* Roomy 13x13 starter island layout centered around (6,6) */
+const fresh=()=>({
+  level:1,xp:0,hp:100,maxHp:100,
+  bananas:20,schmekels:30,streak:0,
+  lastResetDate:null,lastResetAt:null,lastSeenTimestamp:Date.now(),
+  lastActiveDate:null,lastCheckIn:null,
+  habits:[
+    mk('Drink a glass of water','easy','Min. 1 glass, any time of day'),
+    mk('Read for 20 minutes','medium','Min. 10 pages of a real book'),
+    mk('Workout','hard','Min. 10 minutes of movement')
+  ],
+  placedItems:[
+    it('fire',6,6),
+    it('hammock',4,5),
+    it('palm',2,9),
+    it('palm',9,3,1),
+    it('hut',8,8),
+    it('grass',5,8,2),
+    it('grass',7,4,1)
+  ],
+  monkeys:[{id:uid(),x:6,y:7,v:0}],
+  extraLand:null,landBought:false,inventory:{},history:{},
+  dayShift:0,muted:false,
+  player:{name:'',gender:'',done:false},
+  started:null
+});
+
+/* Backward-compatible save normalizer */
+function norm(o){
+  const s={...fresh(),...o};
+  s.hp=typeof s.hp==='number'?Math.max(10,Math.min(100,s.hp)):100;
+  s.maxHp=100;
+  s.habits=(Array.isArray(s.habits)?s.habits:[]).map(h=>{
+    const done=Boolean(h.done||h.completedToday);
+    const manual=h.poseManual&&POSES.includes(h.poseManual)?h.poseManual:null;
+    const pose=manual||(h.actionPose&&POSES.includes(h.actionPose)?h.actionPose:detectPose(h.title,h.desc));
+    return{
+      ...h,
+      desc:h.desc||'',
+      done,
+      completedToday:done,
+      log:h.log||{},
+      total:+h.total||0,
+      gain:+h.gain||0,
+      actionPose:pose,
+      poseManual:manual
+    };
+  });
+  s.placedItems=(Array.isArray(s.placedItems)?s.placedItems:[])
+    .filter(p=>SHOP.some(x=>x.id===p.type))
+    .map(p=>({...p,f:p.f||0,v:Math.min(p.v||0,SHOP.find(x=>x.id===p.type).vars-1)}));
+  if(!Array.isArray(s.monkeys))s.monkeys=[];
+  /* Keep extraLand outside the 13x13 grid if an older 9x9 save had it at x/y=9 */
+  if(s.extraLand){
+    s.landBought=true;
+    if(s.extraLand.x>=0&&s.extraLand.x<Iso.N&&s.extraLand.y>=0&&s.extraLand.y<Iso.N){
+      s.extraLand={x:Iso.N,y:Math.floor(Iso.N/2)};
+    }
+  }
+  s.inventory=s.inventory||{};
+  s.inventory.land=s.landBought&&!s.extraLand?Math.min(1,s.inventory.land||0):0;
+  s.player={name:'',gender:'',...(o&&o.player)};
+  s.player.name=String(s.player.name||'').slice(0,20);
+  s.player.done=!!s.player.name;
+  if(!/^(female|male|other)$/.test(s.player.gender))s.player.gender=s.player.done?'other':'';
+
+  /* Upgrade legacy history records & preserve status fields */
+  const H={};
+  Object.entries(s.history||{}).forEach(([d,r])=>{
+    if(typeof r==='number'){
+      const c=s.habits.filter(h=>h.log[d]).length;
+      const n=Math.max(c,s.habits.length);
+      H[d]={completed:c,total:n,completedCount:c,targetCount:n,actions:r,status:n>0?(c>=n?'green':c===0?'red':'grey'):'grey'};
+    }else if(r&&typeof r==='object'){
+      const c=+(r.completedCount??r.completed) || 0;
+      const n=+(r.targetCount??r.total) || 0;
+      const st=r.status||(n>0?(c>=n?'green':c===0?'red':'grey'):'grey');
+      H[d]={completed:c,total:n,completedCount:c,targetCount:n,actions:+r.actions||0,status:st};
+    }
+  });
+  s.history=H;
+  s.lastResetDate=s.lastResetDate||s.lastActiveDate||null;
+  s.started=s.started||Object.keys(H).sort()[0]||null;
+  return s;
+}
+
+const G={
+  S:null,pending:null,SHOP,DIFF,POSES,POSE_LABELS,xpFor,getLocalDateKey,addDays,detectPose,mk,uid,
+  today(){
+    const now=new Date();
+    const shifted=new Date(now.getFullYear(),now.getMonth(),now.getDate()+(G.S?.dayShift||0));
+    return getLocalDateKey(shifted);
+  },
+  load(){
+    for(const k of[KEY,OLD]){
+      try{
+        const o=JSON.parse(localStorage.getItem(k));
+        if(o&&Array.isArray(o.habits)&&Array.isArray(o.placedItems)){
+          G.S=norm(o);G.init();return;
+        }
+      }catch(e){}
+    }
+    G.S=norm({});G.init();
+  },
+  init(){if(!G.S.started)G.S.started=G.today()},
+  save(){
+    try{
+      G.S.lastSeenTimestamp=Date.now();
+      const o={...G.S};
+      if(G.pending)o.placedItems=[...o.placedItems,G.pending];
+      localStorage.setItem(KEY,JSON.stringify(o));
+      return true;
+    }catch(e){return false}
+  },
+  importJSON(txt){
+    const o=JSON.parse(txt);
+    if(!o||!Array.isArray(o.habits)||!Array.isArray(o.placedItems))throw 0;
+    G.S=norm(o);G.init();
+  },
+  reset(){const p=G.S.player;G.S=norm({player:p});G.init()},
+  give(xp,b,s){
+    const S=G.S;
+    S.bananas=Math.max(0,S.bananas+b);
+    S.schmekels=Math.max(0,S.schmekels+s);
+    S.xp+=xp;
+    /* Leveling up strictly advances level/XP—never spawns monkeys */
+    while(S.xp>=xpFor(S.level)){S.xp-=xpFor(S.level);S.level++}
+    while(S.xp<0&&S.level>1){S.level--;S.xp+=xpFor(S.level)}
+    S.xp=Math.max(0,S.xp);
+  },
+  act(k){
+    const S=G.S,t=G.today(),r=G.rec(t),was=r.actions;
+    r.actions=Math.max(0,was+k);
+    if(!was&&k>0){S.streak++;S.hp=Math.min(S.maxHp,S.hp+5)}
+    if(!r.actions&&k<0)S.streak=Math.max(0,S.streak-1);
+    S.lastActiveDate=t;
+    if(!S.lastResetDate)S.lastResetDate=t;
+  },
+  streak(h){
+    let d=G.today(),n=0;
+    if(!h.log[d])d=addDays(d,-1);
+    while(h.log[d]){n++;d=addDays(d,-1)}
+    return n;
+  },
+  bonus(h){return Math.min(5,Math.floor((G.streak(h)+(h.done?0:1))/3))},
+  toggle(id){
+    const h=G.S.habits.find(x=>x.id===id);if(!h)return null;
+    const d=DIFF[h.difficulty],t=G.today();
+    if(!h.done){
+      const ban=d.ban+G.bonus(h);
+      h.done=true;h.completedToday=true;h.total++;h.log[t]=1;h.gain=ban;
+      G.give(d.xp,ban,d.sch);G.act(1);
+      return`+${d.xp} XP  +${ban} 🍌  +${d.sch} 🪙`;
+    }
+    h.done=false;h.completedToday=false;h.total=Math.max(0,h.total-1);delete h.log[t];
+    G.give(-d.xp,-(h.gain||d.ban),-d.sch);G.act(-1);
+    return null;
+  },
+  checkIn(){
+    if(G.S.lastCheckIn===G.today())return null;
+    G.S.lastCheckIn=G.today();
+    G.give(10,10,3);G.act(1);
+    return'+10 XP  +10 🍌  +3 🪙';
+  },
+  buy(id){
+    const S=G.S,p=SHOP.find(x=>x.id===id),k=p.cur==='b'?'bananas':'schmekels';
+    if(p.once&&S.landBought)return false;
+    if(S[k]<p.price)return false;
+    S[k]-=p.price;S.inventory[id]=(S.inventory[id]||0)+1;
+    if(id==='land')S.landBought=true;
+    return true;
+  },
+  /* Automatic New-Day Reset using device local YYYY-MM-DD key */
+  checkNewDay(){
+    const S=G.S,currentDateKey=G.today();
+    if(!S.lastResetDate){
+      S.lastResetDate=currentDateKey;
+      S.lastActiveDate=currentDateKey;
+      S.lastResetAt=new Date().toISOString();
+      return'';
+    }
+    if(currentDateKey===S.lastResetDate)return'';
+
+    const prevDate=S.lastResetDate;
+    const prevRec=G.rec(prevDate);
+    const doneCnt=S.habits.filter(h=>h.done||h.completedToday).length;
+    const totalCnt=S.habits.length;
+    prevRec.completed=doneCnt;
+    prevRec.total=totalCnt;
+    prevRec.completedCount=doneCnt;
+    prevRec.targetCount=totalCnt;
+    prevRec.status=totalCnt>0?(doneCnt>=totalCnt?'green':doneCnt===0?'red':'grey'):'grey';
+
+    let missedDays=0;
+    for(let d=prevDate,i=0;d<currentDateKey&&i<400;d=addDays(d,1),i++){
+      const x=G.rec(d);
+      if(d>prevDate&&!x.actions){
+        x.completed=0;x.total=totalCnt;
+        x.completedCount=0;x.targetCount=totalCnt;x.status='red';
+      }
+      if(!(x.actions>0||x.completedCount>0))missedDays++;
+    }
+
+    S.habits.forEach(h=>{h.done=false;h.completedToday=false});
+    if(missedDays>0){
+      S.streak=0;
+      S.hp=Math.max(10,S.hp-missedDays*15);
+    }
+    S.lastResetDate=currentDateKey;
+    S.lastActiveDate=currentDateKey;
+    S.lastResetAt=new Date().toISOString();
+    S.lastSeenTimestamp=Date.now();
+    return missedDays
+      ?'New day! Yesterday was missed, so your streak reset. Fresh quests are ready.'
+      :'New day! Your quests are fresh.';
+  },
+  rec(d){
+    const S=G.S;
+    return S.history[d]||(S.history[d]={completed:0,total:S.habits.length,completedCount:0,targetCount:S.habits.length,actions:0,status:'red'});
+  },
+  snap(){
+    const S=G.S,r=G.rec(G.today());
+    const c=S.habits.filter(h=>h.done||h.completedToday).length,n=S.habits.length;
+    r.completed=c;r.total=n;r.completedCount=c;r.targetCount=n;
+    r.status=n>0?(c>=n?'green':c===0?'red':'grey'):'grey';
+  },
+  ymd(y,m,d){return getLocalDateKey(new Date(y,m,d))},
+  status(d){
+    const S=G.S,t=G.today();
+    if(d>t)return{k:'fu'};
+    if(d===t)return{k:'td',c:S.habits.filter(h=>h.done||h.completedToday).length,n:S.habits.length};
+    if(S.started&&d<S.started)return{k:'na'};
+    const r=S.history[d]||{completedCount:0,targetCount:S.habits.length};
+    const c=r.completedCount??r.completed??0;
+    const n=r.targetCount??r.total??S.habits.length;
+    return{k:n>0?(c>=n?'g':c===0?'r':'y'):'na',c,n};
+  }
+};
+return G;
+})();
+</script>
+
+<script>
+/* ===== multiplayer.js: 5-server roster, auto-assign, switcher, live island sharing & presence cleanup ===== */
+const Multiplayer=(()=>{
+/* CONFIGURABLE SERVER CAPACITIES (Servers 1–5) */
+const SERVER_CONFIG=[
+  {id:'server-1',name:'Server 1',label:'Coral Cove',maxCapacity:2},
+  {id:'server-2',name:'Server 2',label:'Banana Bay',maxCapacity:5},
+  {id:'server-3',name:'Server 3',label:'Tiki Lagoon',maxCapacity:5},
+  {id:'server-4',name:'Server 4',label:'Palm Atoll',maxCapacity:5},
+  {id:'server-5',name:'Server 5',label:'Zen Archipelago',maxCapacity:5}
+];
+
+/* REAL-TIME BACKEND SETUP:
+   Paste your Firebase Realtime Database URL below (e.g. "https://your-project-default-rtdb.firebaseio.com")
+   for cross-device live multiplayer. When blank, uses BroadcastChannel + localStorage multi-tab sync
+   so multiple browser tabs on the same device sync live out-of-the-box! */
+const FIREBASE_DB_URL = 'https://monke-game-95a7b-default-rtdb.asia-southeast1.firebasedatabase.app';
+const HEARTBEAT_MS = 15000;
+const PRESENCE_TIMEOUT_MS = 45000;
+const LOCAL_CHANNEL = 'monke_haven_mp_v1';
+
+const SID_KEY='monkeSessionPlayerId';
+let playerId=sessionStorage.getItem(SID_KEY);
+if(!playerId){playerId='p_'+Math.random().toString(36).slice(2,10);sessionStorage.setItem(SID_KEY,playerId)}
+
+let currentServerId=null,allFull=false,serversData={},hbTimer=null,es=null,bc=null,onUpdate=()=>{};
+
+const cleanUrl=()=>FIREBASE_DB_URL.replace(/\/+$/,'');
+const isRemote=()=>/^https?:\/\//.test(cleanUrl());
+
+function activePlayers(srvId){
+  const now=Date.now(),raw=(serversData[srvId]&&serversData[srvId].players)||{};
+  return Object.values(raw).filter(p=>p&&p.online!==false&&(now-(p.lastSeen||0))<PRESENCE_TIMEOUT_MS);
+}
+
+function buildPayload(){
+  const S=Game.S;
+  return{
+    id:playerId,
+    name:S.player.name||'Explorer',
+    gender:S.player.gender||'other',
+    level:S.level||1,
+    placedItems:S.placedItems||[],
+    extraLand:S.extraLand||null,
+    monkeys:S.monkeys||[],
+    online:true,
+    lastSeen:Date.now()
+  };
+}
+
+/* --- Local Multi-Tab / Demo Registry (used when FIREBASE_DB_URL is empty) --- */
+function readLocal(){
+  try{return JSON.parse(localStorage.getItem(LOCAL_CHANNEL))||{}}catch(e){return{}}
+}
+function writeLocal(data){
+  try{localStorage.setItem(LOCAL_CHANNEL,JSON.stringify(data))}catch(e){}
+  if(bc)try{bc.postMessage({type:'sync'})}catch(e){}
+}
+function pruneLocal(data){
+  const now=Date.now();
+  SERVER_CONFIG.forEach(s=>{
+    const pl=(data[s.id]&&data[s.id].players)||{};
+    Object.keys(pl).forEach(k=>{if(!pl[k]||pl[k].online===false||(now-(pl[k].lastSeen||0))>=PRESENCE_TIMEOUT_MS)delete pl[k]});
+    data[s.id]={players:pl};
+  });
+  return data;
+}
+
+/* --- Remote Firebase Realtime Database Sync (REST + SSE Stream + Keepalive Disconnect) --- */
+async function fetchRemoteAll(){
+  const res=await fetch(`${cleanUrl()}/servers.json`);
+  const json=await res.json();
+  serversData=json||{};
+  return serversData;
+}
+async function putRemotePlayer(srvId,payload){
+  await fetch(`${cleanUrl()}/servers/${srvId}/players/${playerId}.json`,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  });
+}
+function deleteRemotePlayer(srvId,useBeacon=false){
+  if(!srvId)return;
+  const url=`${cleanUrl()}/servers/${srvId}/players/${playerId}.json`;
+  if(useBeacon){
+    try{fetch(url,{method:'DELETE',keepalive:true})}catch(e){}
+    return;
+  }
+  fetch(url,{method:'DELETE'}).catch(()=>{});
+}
+
+function startListener(){
+  if(isRemote()){
+    if(es)return;
+    try{
+      es=new EventSource(`${cleanUrl()}/servers.json`);
+      const handle=ev=>{
+        try{
+          const msg=JSON.parse(ev.data);
+          if(msg&&msg.path==='/'){serversData=msg.data||{};notify()}
+          else fetchRemoteAll().then(notify).catch(()=>{});
+        }catch(e){}
+      };
+      es.addEventListener('put',handle);
+      es.addEventListener('patch',handle);
+    }catch(e){}
+  }else{
+    if(!bc&&'BroadcastChannel' in window){
+      bc=new BroadcastChannel(LOCAL_CHANNEL);
+      bc.onmessage=()=>{serversData=pruneLocal(readLocal());notify()};
+    }
+    addEventListener('storage',e=>{if(e.key===LOCAL_CHANNEL){serversData=pruneLocal(readLocal());notify()}});
+  }
+}
+
+function notify(){
+  /* Check if current server still holds us; push co-player islands to Iso */
+  if(currentServerId){
+    const coPlayers=activePlayers(currentServerId).filter(p=>p.id!==playerId);
+    Iso.setPeers(coPlayers);
+  }else{
+    Iso.setPeers([]);
+  }
+  onUpdate();
+}
+
+const MP={
+  SERVER_CONFIG,
+  playerId,
+  setListener(fn){onUpdate=fn},
+  currentServer(){return SERVER_CONFIG.find(s=>s.id===currentServerId)||null},
+  isAllFull(){return allFull},
+  roster(){
+    return SERVER_CONFIG.map(cfg=>{
+      const players=activePlayers(cfg.id);
+      return{
+        ...cfg,
+        onlineCount:players.length,
+        players,
+        isCurrent:cfg.id===currentServerId,
+        hasSpace:players.length<cfg.maxCapacity
+      };
+    });
+  },
+  async refresh(){
+    if(isRemote())await fetchRemoteAll().catch(()=>{});
+    else serversData=pruneLocal(readLocal());
+    notify();
+  },
+  async joinServer(srvId){
+    const cfg=SERVER_CONFIG.find(s=>s.id===srvId);
+    if(!cfg)return{ok:false,reason:'Invalid server.'};
+    await MP.refresh();
+    const list=activePlayers(srvId).filter(p=>p.id!==playerId);
+    if(list.length>=cfg.maxCapacity)return{ok:false,reason:`${cfg.name} is full (${cfg.maxCapacity}/${cfg.maxCapacity}).`};
+
+    if(currentServerId&&currentServerId!==srvId)await MP.leaveServer();
+    currentServerId=srvId;
+    allFull=false;
+    const payload=buildPayload();
+
+    if(isRemote()){
+      await putRemotePlayer(srvId,payload);
+      await fetchRemoteAll().catch(()=>{});
+    }else{
+      const d=pruneLocal(readLocal());
+      d[srvId]=d[srvId]||{players:{}};
+      d[srvId].players[playerId]=payload;
+      writeLocal(d);
+      serversData=d;
+    }
+    notify();
+    return{ok:true,server:cfg};
+  },
+  async autoJoin(){
+    await MP.refresh();
+    for(const cfg of SERVER_CONFIG){
+      const count=activePlayers(cfg.id).filter(p=>p.id!==playerId).length;
+      if(count<cfg.maxCapacity){
+        return MP.joinServer(cfg.id);
+      }
+    }
+    currentServerId=null;
+    allFull=true;
+    notify();
+    return{ok:false,allFull:true,reason:'All servers full. Please retry in a moment.'};
+  },
+  async leaveServer(unloading=false){
+    const prev=currentServerId;
+    if(!prev)return;
+    currentServerId=null;
+    if(isRemote()){
+      deleteRemotePlayer(prev,unloading);
+    }else{
+      const d=pruneLocal(readLocal());
+      if(d[prev]&&d[prev].players)delete d[prev].players[playerId];
+      writeLocal(d);
+      serversData=d;
+    }
+    if(!unloading)notify();
+  },
+  async syncState(){
+    if(!currentServerId)return;
+    const payload=buildPayload();
+    if(isRemote()){
+      putRemotePlayer(currentServerId,payload).catch(()=>{});
+    }else{
+      const d=pruneLocal(readLocal());
+      d[currentServerId]=d[currentServerId]||{players:{}};
+      d[currentServerId].players[playerId]=payload;
+      writeLocal(d);
+      serversData=d;
+      notify();
+    }
+  },
+  /* Testing helper: spawn/clear a simulated co-player on any server so solo testers can verify full capacity & shared islands */
+  toggleSimFriend(srvId){
+    if(isRemote())return'Simulated friends are for local preview mode.';
+    const d=pruneLocal(readLocal());
+    const cfg=SERVER_CONFIG.find(s=>s.id===srvId);
+    d[srvId]=d[srvId]||{players:{}};
+    const bots=Object.keys(d[srvId].players).filter(k=>k.startsWith('sim_'));
+    if(bots.length>=cfg.maxCapacity-(d[srvId].players[playerId]?1:0)){
+      bots.forEach(k=>delete d[srvId].players[k]);
+      writeLocal(d);serversData=d;notify();
+      return`Cleared simulated players from ${cfg.name}.`;
+    }
+    const id='sim_'+Math.random().toString(36).slice(2,6);
+    const names=['Maya','Koji','Talia','Leo','Sora','Niko'];
+    d[srvId].players[id]={
+      id,
+      name:names[Math.floor(Math.random()*names.length)],
+      gender:['female','male','other'][Math.floor(Math.random()*3)],
+      level:2+Math.floor(Math.random()*6),
+      placedItems:[
+        {id:'b1',type:'fire',x:6,y:6,f:0,v:0},
+        {id:'b2',type:'hut',x:8,y:5,f:0,v:1},
+        {id:'b3',type:'palm',x:3,y:8,f:0,v:1},
+        {id:'b4',type:'tower',x:4,y:3,f:0,v:1}
+      ],
+      monkeys:[{id:'bm1',x:6,y:7,v:1},{id:'bm2',x:5,y:5,v:2}],
+      online:true,
+      lastSeen:Date.now()
+    };
+    writeLocal(d);serversData=d;notify();
+    return`Added simulated player to ${cfg.name}.`;
+  },
+  init(){
+    startListener();
+    clearInterval(hbTimer);
+    hbTimer=setInterval(()=>{
+      if(currentServerId)MP.syncState();
+      else MP.refresh();
+    },HEARTBEAT_MS);
+    addEventListener('pagehide',()=>MP.leaveServer(true));
+    addEventListener('beforeunload',()=>MP.leaveServer(true));
+    addEventListener('offline',()=>MP.leaveServer(false));
+    addEventListener('online',()=>{if(!currentServerId)MP.autoJoin()});
+  }
+};
+return MP;
+})();
+</script>
+
+<script>
+/* ===== app.js: UI, sheets, place mode, quest poses, live date/clock, multiplayer HUD & audio ===== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let cal=null,pg='',warned=0,view=null,qf='todo',manage=false,form=null,cat='All',mode=null,pl=null,mv=null,sel=null,armed=0,toastT,AC;
+
+function tone(f,at=0,d=.12,ty='square',v=.05){
+  if(Game.S.muted)return;
+  try{
+    AC=AC||new(window.AudioContext||window.webkitAudioContext)();
+    const o=AC.createOscillator(),g=AC.createGain(),t0=AC.currentTime+at;
+    o.type=ty;o.frequency.value=f;
+    g.gain.setValueAtTime(v,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+d);
+    o.connect(g);g.connect(AC.destination);o.start(t0);o.stop(t0+d+.02);
+  }catch(e){}
+}
+const SFX={
+  click:()=>tone(520,0,.05),
+  undo:()=>tone(300,0,.12,'triangle'),
+  coin:()=>{tone(988,0,.08);tone(1319,.08,.2)},
+  level:()=>[523,659,784,1047,1319].forEach((f,i)=>tone(f,i*.11,.22,'square',.06)),
+  bad:()=>tone(160,0,.2,'sawtooth')
+};
+const fx=n=>{SFX[n]&&SFX[n]();try{navigator.vibrate&&navigator.vibrate(30)}catch(e){}};
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2900)}
+
+/* Live Local Date & Time Clock */
+function updateClock(){
+  const now=new Date();
+  const dateStr=now.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+  const timeStr=now.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  $('#dt').textContent=`${dateStr} · ${timeStr}`;
+}
+
+function hud(){
+  const S=Game.S,P=S.player,g=P.gender||'other';
+  $('#hn').textContent=P.name||'Explorer';
+  if($('#av').dataset.g!==g){$('#av').dataset.g=g;$('#av').innerHTML=avatar(g)}
+  $('#pcard').title=`XP ${S.xp} / ${Game.xpFor(S.level)} · HP ${S.hp}/${S.maxHp}`;
+  $('#lv').textContent='Lv '+S.level;
+  $('#xpb').style.width=(S.xp/Game.xpFor(S.level)*100)+'%';
+  $('#stk').textContent='🔥 '+S.streak;
+  $('#ban').textContent='🍌 '+S.bananas.toLocaleString();
+  $('#sch').textContent='🪙 '+S.schmekels.toLocaleString();
+  $('#bSnd').textContent=S.muted?'🔇':'🔊';
+  updateClock();
+
+  /* Server pill readout */
+  const cur=Multiplayer.currentServer();
+  const roster=Multiplayer.roster();
+  const entry=cur&&roster.find(r=>r.id===cur.id);
+  if(entry){
+    $('#sdot').className='srv-dot';
+    $('#stxt').textContent=`${entry.name} · ${entry.onlineCount}/${entry.maxCapacity}`;
+  }else if(Multiplayer.isAllFull()){
+    $('#sdot').className='srv-dot off';
+    $('#stxt').textContent='Servers Full';
+  }else{
+    $('#sdot').className='srv-dot off';
+    $('#stxt').textContent='Offline';
+  }
+}
+
+function changed(){
+  const S=Game.S;
+  Game.snap();
+  if(!Game.save()&&!warned){warned=1;toast('Storage is blocked or full. Export a backup in Settings.')}
+  Iso.setWorld(S.placedItems,S.extraLand,S.monkeys);
+  Multiplayer.syncState();
+  hud();sheet();bar();
+}
+
+function run(fn){
+  const S=Game.S,l0=S.level,msg=fn();
+  if(S.level>l0){fx('level');toast(`Level ${S.level}! Nice work.`)}
+  else if(msg){fx('coin');toast(msg)}
+  else fx('undo');
+  changed();
+}
+
+/* ---- Place Mode: ghost preview, variant cycling, flip, move/store ---- */
+const spec=id=>Game.SHOP.find(x=>x.id===id);
+const okAt=(i,j)=>{
+  const L=Iso.isLand,free=!Game.S.placedItems.some(o=>o.x===i&&o.y===j);
+  if(pl.type==='land')return!L(i,j)&&[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b])=>L(i+a,j+b));
+  if(pl.type==='dock')return L(i,j)&&free&&!(L(i-1,j)&&L(i+1,j)&&L(i,j-1)&&L(i,j+1));
+  return L(i,j)&&free;
+};
+function startPlace(type,at){
+  const S=Game.S,mid=Math.floor(Iso.N/2);
+  mode='place';sel=null;Iso.sel=null;view=null;
+  pl={
+    type,
+    i:at?at.x:mid,
+    j:at?at.y:mid,
+    f:at?at.f:0,
+    v:at?at.v:(S.placedItems.filter(o=>o.type===type).length+S.monkeys.filter(()=>type==='monkey').length)%spec(type).vars,
+    ok:false
+  };
+  pl.ok=okAt(pl.i,pl.j);
+  Iso.ghost=pl;
+  changed();
+}
+function endPlace(){Game.pending=null;mode=null;pl=null;mv=null;Iso.ghost=null}
+function bar(){
+  const b=$('#bar');
+  if(mode==='place'){
+    const p=spec(pl.type);
+    b.innerHTML=`<img alt="" src="${Iso.thumb(pl.type,pl.v)}" width="44" height="44" style="border-radius:10px;background:#92c862;border:2px solid #1b1613"><b>${esc(p.name)}</b>${p.vars>1?`<span class="vs"><button class="btn alt" data-b="vp" aria-label="Previous style">‹</button><span>${p.vn?esc(p.vn[pl.v])+' · ':''}${pl.v+1}/${p.vars}</span><button class="btn alt" data-b="var" aria-label="Next style">›</button></span>`:''}${/monkey|land/.test(pl.type)?'':'<button class="btn alt" data-b="flip">↔ Flip</button>'}<button class="btn" data-b="ok">✔ Place</button><button class="btn alt" data-b="no" aria-label="Cancel">✕</button>`;
+  }else if(sel){
+    b.innerHTML=`<b>${esc(spec(sel.type).name)}</b><button class="btn gold" data-b="move">Move</button><button class="btn alt" data-b="store">Store</button><button class="btn alt" data-b="desel" aria-label="Close">✕</button>`;
+  }
+  b.hidden=!(mode||sel);
+}
+
+$('#bar').onclick=e=>{
+  const a=e.target.closest('[data-b]');if(!a)return;
+  const S=Game.S,k=a.dataset.b;
+  if(k==='flip'){pl.f=pl.f?0:1;fx('click')}
+  else if(k==='var'||k==='vp'){const n=spec(pl.type).vars;pl.v=(pl.v+(k==='var'?1:n-1))%n;fx('click');bar()}
+  else if(k==='ok'){
+    if(!pl.ok){
+      fx('bad');
+      toast(pl.type==='land'?'Land must touch the island.':pl.type==='dock'?'Docks need a free tile at the water’s edge.':'That tile is taken.');
+      return;
+    }
+    const t=pl.type;
+    if(t==='monkey')S.monkeys.push({id:Game.uid(),x:pl.i,y:pl.j,v:pl.v});
+    else if(t==='land')S.extraLand={x:pl.i,y:pl.j};
+    else S.placedItems.push({id:Game.uid(),type:t,x:pl.i,y:pl.j,f:pl.f,v:pl.v});
+    if(!mv)S.inventory[t]=Math.max(0,(S.inventory[t]||0)-1);
+    endPlace();fx('coin');changed();
+  }else if(k==='no'){if(mv)S.placedItems.push(mv);endPlace();fx('click');changed()}
+  else if(k==='move'){const o=sel;S.placedItems=S.placedItems.filter(x=>x!==o);Game.pending=o;startPlace(o.type,o);mv=o}
+  else if(k==='store'){S.placedItems=S.placedItems.filter(x=>x!==sel);S.inventory[sel.type]=(S.inventory[sel.type]||0)+1;sel=null;Iso.sel=null;fx('undo');changed();toast('Stored in your inventory.')}
+  else{sel=null;Iso.sel=null;changed()}
+};
+Iso.onTap=(i,j)=>{
+  if(mode==='place'){
+    if(pl.i===i&&pl.j===j&&pl.ok)return $('#bar [data-b=ok]').click();
+    pl.i=i;pl.j=j;pl.ok=okAt(i,j);fx('click');
+  }else{
+    sel=Game.S.placedItems.find(o=>o.x===i&&o.y===j)||null;
+    Iso.sel=sel;bar();
+  }
+};
+Iso.onHover=(i,j)=>{if(mode==='place'){pl.i=i;pl.j=j;pl.ok=okAt(i,j)}};
+
+/* ---- Right-Side Quest Monkey SVG Artwork for all 6 Action Poses ---- */
+const head=t=>`<div class="sh"><b>${t}</b><button class="x" data-a="close" aria-label="Close">✕</button></div>`;
+const art=pose=>{
+  let propSvg='';
+  if(pose==='eating'){
+    /* Holding a ripe banana & water bottle */
+    propSvg=`<path d="M42 42q14 2 14-12q-4 8-14 8z" fill="#f5c542"/><rect x="10" y="34" width="8" height="15" rx="3" fill="#4ea8de"/><rect x="12" y="31" width="4" height="3" rx="1" fill="#fffbf3"/>`;
+  }else if(pose==='workout'){
+    /* Lifting barbell overhead */
+    propSvg=`<path d="M8 14h48" stroke-width="4" stroke="#6b7078"/><rect x="5" y="8" width="6" height="12" rx="2" fill="#4b4f55"/><rect x="53" y="8" width="6" height="12" rx="2" fill="#4b4f55"/><path d="M16 38L12 16M48 38L52 16" stroke="#8a5a34" stroke-width="5" stroke-linecap="round"/>`;
+  }else if(pose==='reading_writing'){
+    /* Open book + pencil */
+    propSvg=`<path d="M15 44q8-5 17 0q9-5 17 0v13q-9-5-17 0q-8-5-17 0z" fill="#fffbf3"/><path d="M32 44v13" stroke="#1b1613" stroke-width="2"/><path d="M47 34l7-7 3 3-7 7z" fill="#f5a623"/>`;
+  }else if(pose==='sleep_zen'){
+    /* Peaceful meditation / morning sun aura */
+    propSvg=`<circle cx="50" cy="12" r="5" fill="#ffd23f"/><path d="M16 52q16 6 32 0" fill="none" stroke="#8a5a34" stroke-width="5" stroke-linecap="round"/><path d="M22 44q10 5 20 0" fill="none" stroke="#1b1613" stroke-width="2" stroke-linecap="round"/>`;
+  }else if(pose==='social'){
+    /* Friendly waving paw + heart bubble */
+    propSvg=`<path d="M46 39q8-8 6-17" fill="none" stroke="#8a5a34" stroke-width="5.5" stroke-linecap="round"/><circle cx="52" cy="21" r="4" fill="#f3d9b8"/><ellipse cx="14" cy="15" rx="8" ry="6" fill="#fffbf3"/><path d="M14 17l-2.5-2.5a1.8 1.8 0 0 1 2.5-2.5a1.8 1.8 0 0 1 2.5 2.5z" fill="#e4572e" stroke="none"/>`;
+  }else{
+    /* Default: thoughtful chin-rest pose + idea spark */
+    propSvg=`<circle cx="50" cy="14" r="4.5" fill="#ffd23f"/><path d="M39 45q4-6 1-10" fill="none" stroke="#8a5a34" stroke-width="5" stroke-linecap="round"/>`;
+  }
+  const eyes=pose==='sleep_zen'
+    ?`<path d="M25 25q2 2 4 0M35 25q2 2 4 0" fill="none" stroke="#1b1613" stroke-width="2" stroke-linecap="round"/>`
+    :`<circle cx="27" cy="25" r="1.8" fill="#1b1613"/><circle cx="37" cy="25" r="1.8" fill="#1b1613"/>`;
+  return`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#1b1613" stroke-width="2.5" stroke-linejoin="round"><ellipse cx="32" cy="48" rx="15" ry="13" fill="#8a5a34"/><circle cx="17" cy="24" r="6" fill="#8a5a34"/><circle cx="47" cy="24" r="6" fill="#8a5a34"/><circle cx="32" cy="26" r="14" fill="#8a5a34"/><ellipse cx="32" cy="30" rx="9" ry="7.5" fill="#f3d9b8"/>${propSvg}</g>${eyes}<path d="M28 33q4 3 8 0" fill="none" stroke="#1b1613" stroke-width="2" stroke-linecap="round"/></svg>`;
+};
+
+const avatar=g=>`<svg viewBox="0 0 64 64" aria-hidden="true"><g stroke="#1b1613" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">${g==='female'?'<path d="M13 40C8 12 22 5 32 5s24 7 19 35l-4 16H17z" fill="#4a2f1d"/>':''}<path d="M10 64q0-14 22-14t22 14z" fill="${g==='female'?'#f27d72':g==='male'?'#4ea8de':'#7bc043'}"/><circle cx="32" cy="31" r="14" fill="#f3d9b8"/>${g==='male'?'<path d="M17 30C14 12 26 10 32 10s18 2 15 20c-2-8-5-11-15-11S19 22 17 30z" fill="#2b1d14"/>':g==='female'?'<path d="M18 30C17 14 27 14 32 14s15 0 14 16c-4-8-8-11-14-11s-10 3-14 11z" fill="#4a2f1d"/><circle cx="44" cy="16" r="4" fill="#f58fb0"/>':'<path d="M22 20q10-14 20 0q-10-5-20 0z" fill="#4CAF50"/>'}</g><circle cx="27" cy="33" r="1.8" fill="#1b1613"/><circle cx="37" cy="33" r="1.8" fill="#1b1613"/><path d="M28 38q4 3 8 0" fill="none" stroke="#1b1613" stroke-width="2" stroke-linecap="round"/></svg>`;
+const pform=first=>`<div class="row"><input id="pn" maxlength="20" placeholder="Your name" aria-label="Your name" value="${esc(Game.S.player.name)}"></div><div class="gs" role="group" aria-label="Gender">${[['female','Female'],['male','Male'],['other','Other']].map(([k,l])=>`<button data-a="gen" data-v="${k}" aria-pressed="${pg===k}">${avatar(k)}${l}</button>`).join('')}</div><div class="row"><button class="btn" data-a="psave">${first?'Start playing':'Save profile'}</button></div>`;
+
+const VIEWS={
+ quests(){
+  const S=Game.S,t=Game.today(),eh=form&&form.id&&S.habits.find(h=>h.id===form.id);
+  const list=S.habits.filter(h=>manage||(qf==='done'?h.done:!h.done));
+  const dots=lg=>[...Array(7)].map((_,i)=>`<i class="${lg[Game.addDays(t,i-6)]?'on':''} ${i===6?'td':''}"></i>`).join('');
+  const card=o=>`<article class="qc ${o.done?'done':''}"><div class="qb"><span class="sb">🔥 ${o.st}${o.bonus?`<i>+${o.bonus} streak bonus</i>`:''}</span><b>${esc(o.title)}</b><small>${esc(o.desc)}</small><div class="qr"><span>🍌 ${o.ban}x</span><span class="dots">${dots(o.log)}</span></div></div><div class="art pose-${o.pose}">${art(o.pose)}</div><button class="tgl" data-a="${o.a}" data-id="${o.id||''}" aria-label="${esc(o.title)}"></button>${o.mg||''}</article>`;
+  const ci=card({
+    done:S.lastCheckIn===t,st:S.streak,bonus:0,
+    title:'Daily Check-In',desc:'Check in daily to keep your island streak alive.',
+    ban:10,log:Object.fromEntries(Object.entries(S.history).map(([d,r])=>[d,r.actions>0])),
+    pose:'social',a:'chk'
+  });
+  const hs=list.map(h=>{
+    const d=Game.DIFF[h.difficulty],bn=Game.bonus(h);
+    const pose=h.actionPose||Game.detectPose(h.title,h.desc);
+    return card({
+      done:h.done,st:Game.streak(h),bonus:bn,
+      title:h.title,desc:h.desc||'Tap to complete',
+      ban:d.ban+bn,log:h.log,pose,a:'tog',id:h.id,
+      mg:manage?`<span class="mg"><button class="x" data-a="ed" data-id="${h.id}" aria-label="Edit">✏️</button><button class="x" data-a="del" data-id="${h.id}" aria-label="Delete">🗑️</button></span>`:''
+    });
+  }).join('');
+  const curPoseSel=eh?(eh.poseManual||'auto'):'auto';
+  return head(manage?'Manage quests':new Date(t+'T00:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}))
+   +(form?`<div class="row"><input id="ht" maxlength="80" placeholder="Quest title" aria-label="Quest title" value="${eh?esc(eh.title):''}"><input id="hs" maxlength="100" placeholder="Requirement, e.g. Min. 10 minutes" aria-label="Requirement" value="${eh?esc(eh.desc):''}"></div><div class="row"><select id="hd" aria-label="Difficulty">${Object.keys(Game.DIFF).map(d=>`<option ${(eh?eh.difficulty:'medium')===d?'selected':''}>${d}</option>`).join('')}</select><select id="hp" aria-label="Monkey action pose">${Object.entries(Game.POSE_LABELS).map(([k,lbl])=>`<option value="${k}" ${curPoseSel===k?'selected':''}>${lbl}</option>`).join('')}</select></div><div class="row"><button class="btn" data-a="fsave">Save</button><button class="btn alt" data-a="fcancel">Cancel</button></div>`:'')
+   +(manage?'':`<div class="tabs"><button data-a="qf" data-v="todo" aria-pressed="${qf==='todo'}">To-Dos</button><button data-a="qf" data-v="done" aria-pressed="${qf==='done'}">Done</button></div>`)
+   +'<div class="sc">'+(manage?'':ci)+(hs||`<p class="mt">${qf==='done'&&!manage?'Nothing done yet today.':'No quests here. Tap + to add one.'}</p>`)+`<button class="fab" data-a="add" aria-label="New quest">+</button></div>`;
+ },
+ shop(){
+  const S=Game.S,cats=['All','Trees','Small Decorations','Buildings','Special'];
+  return head('Shop')+`<div class="bal"><span class="pp">🍌 ${S.bananas.toLocaleString()}</span><span class="pp">🪙 ${S.schmekels.toLocaleString()}</span></div><div class="cats">${cats.map(k=>`<button data-a="cat" data-v="${k}" aria-pressed="${cat===k}">${k}</button>`).join('')}</div><div class="sc">`
+  +Game.SHOP.filter(p=>cat==='All'||p.cat===cat).map(p=>{
+    const own=S.inventory[p.id]||0,k=p.cur==='b'?'bananas':'schmekels',sold=p.once&&S.landBought;
+    const badge=p.once?`${S.landBought?1:0}/1 · ${S.landBought?'Owned / Max Reached':'1 available'}`:(p.vars>1?`${p.vars} variants`:'');
+    return`<div class="si"><img alt="" src="${Iso.thumb(p.id,0)}"><div><b>${p.name}</b><small>${p.desc}</small>${badge?`<span class="vb">${badge}</span>`:''}${own&&!p.once?`<span class="vb">${own} in inventory</span>`:''}</div>${own?`<button class="btn" data-a="place" data-id="${p.id}">Place</button>`:''}${sold?'<button class="pp" disabled>Max 1/1</button>':`<button class="pp" data-a="buy" data-id="${p.id}" ${S[k]>=p.price?'':'disabled'}>${p.cur==='b'?'🍌':'🪙'} ${p.price}</button>`}</div>`;
+  }).join('')+'</div>';
+ },
+ servers(){
+  const roster=Multiplayer.roster(),allFull=Multiplayer.isAllFull();
+  return head('Multiplayer Islands')
+   +(allFull?`<div class="qc"><div class="qb"><b>All servers full</b><small>Every island server is currently at capacity. Try again in a moment.</small><div class="row"><button class="btn gold" data-a="srv-retry">Retry Auto-Join</button></div></div></div>`:'')
+   +`<p class="mt">Players online on the same server see each other’s islands across the ocean. Disconnected players are removed automatically.</p><div class="sc">`
+   +roster.map((s,idx)=>{
+     const others=s.players.filter(p=>p.id!==Multiplayer.playerId);
+     const peersHtml=s.players.map((p,pi)=>{
+       const isMe=p.id===Multiplayer.playerId;
+       const peerIdx=others.findIndex(o=>o.id===p.id);
+       return isMe
+         ?`<span class="sv-peer"><b>You (${esc(p.name)})</b></span>`
+         :`<button class="sv-peer" data-a="visit" data-idx="${peerIdx}" ${s.isCurrent?'':'disabled'}>🏝️ ${esc(p.name)} · Lv ${p.level||1}</button>`;
+     }).join('');
+     return`<div class="sv-card ${s.isCurrent?'cur':''}"><div class="sv-meta"><b>${esc(s.name)} · ${esc(s.label)}</b><small>${s.onlineCount}/${s.maxCapacity} online ${s.isCurrent?'· Connected':s.hasSpace?'· Slot open':'· Full'}</small><div class="sv-peers">${peersHtml||'<small class="mt">Empty ocean</small>'}</div></div><div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">${s.isCurrent?'<span class="pp">Active</span>':`<button class="btn" data-a="srv-join" data-id="${s.id}" ${s.hasSpace?'':'disabled'}>${s.hasSpace?'Switch':'Full'}</button>`}<button class="x" style="font-size:11px;color:var(--mut)" data-a="srv-sim" data-id="${s.id}">+ Demo Peer</button></div></div>`;
+   }).join('')+'</div>';
+ },
+ settings(){
+  const S=Game.S;
+  return head('Settings')+`<p class="mt">Profile · ❤️ ${S.hp}/${S.maxHp} HP</p>`+pform(false)
+   +`<div class="row"><button class="btn alt" data-a="snd">${S.muted?'🔇 Sound off':'🔊 Sound on'}</button><button class="btn gold" data-a="sim">Simulate next day</button></div>`
+   +`<p class="mt">Backup. Your island saves on this device automatically; keep a copy to be safe or to move phones.</p><textarea id="io" aria-label="Save JSON" placeholder="Export fills this box. Paste a save here and tap Import."></textarea>`
+   +`<div class="row"><button class="btn alt" data-a="exp">Export</button><button class="btn alt" data-a="cpy">Copy</button><button class="btn" data-a="imp">Import</button></div>`
+   +`<div class="row"><button class="btn alt" data-a="dl">⬇ Save file</button><button class="btn alt" data-a="pick">⬆ Load file</button><input type="file" id="fi" accept=".json,application/json" hidden><button class="btn coral" data-a="rst">${armed?'Tap again to erase':'Reset all'}</button></div>`
+   +`<p class="mt">Tip: in your browser menu, choose Add to Home Screen to play it like an app.</p>`;
+ },
+ welcome(){return`<div class="sh"><b>Welcome to Monke Haven 🐒</b></div><p class="mt">Tell us who is building this island.</p>`+pform(true)},
+ calendar(){
+  const S=Game.S,M=new Date(cal.y,cal.m,1),dim=new Date(cal.y,cal.m+1,0).getDate();
+  const ST={g:'All habits done',y:'Partly done',r:'Nothing done',td:'Today, in progress'};
+  let cells='';
+  for(let i=0;i<M.getDay();i++)cells+='<span></span>';
+  for(let d=1;d<=dim;d++){
+    const ds=Game.ymd(cal.y,cal.m,d),s=Game.status(ds);
+    cells+=`<button class="cd ${s.k} ${cal.s===ds?'sel':''}" data-a="cday" data-d="${ds}" aria-label="${ds}">${d}</button>`;
+  }
+  let sum='<p class="mt">Tap a day to see how it went.</p>';
+  if(cal.s){
+    const s=Game.status(cal.s),dn=S.habits.filter(h=>h.log[cal.s]).map(h=>esc(h.title));
+    sum=`<div class="qc"><div class="qb"><b>${new Date(cal.s+'T00:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'})}</b>`
+      +(s.k==='fu'?'<small>This day has not happened yet.</small>':s.k==='na'?'<small>No habits were tracked on this day.</small>':`<small>${ST[s.k]}: ${s.c} of ${s.n} habits</small>${dn.length?`<small>✔ ${dn.join(', ')}</small>`:''}`)
+      +'</div></div>';
+  }
+  return head('Calendar')+`<div class="sh"><button class="x" data-a="cmo" data-v="-1" aria-label="Previous month">‹</button><b>${M.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</b><button class="x" data-a="cmo" data-v="1" aria-label="Next month">›</button></div><div class="lg"><span><i style="background:#4CAF50"></i>All done</span><span><i style="background:#9a9a9a"></i>Partial</span><span><i style="background:#e4572e"></i>None</span><span><i style="background:transparent;outline:2px solid #2f7de1"></i>Today</span></div><div class="sc"><div class="cal">${'SMTWTFS'.split('').map(x=>`<small>${x}</small>`).join('')}${cells}</div>${sum}</div>`;
+ }
+};
+
+function sheet(){
+  $('#ov').hidden=!view;
+  if(view){
+    $('#sheet').className='sheet'+(view==='shop'?' dk':'')+(/^(shop|quests|calendar|servers)$/.test(view)?' fx':'');
+    $('#sheet').innerHTML=VIEWS[view]();
+  }
+}
+const open=(v,mg=false)=>{
+  view=v;manage=mg;form=null;
+  if(v==='settings'||v==='welcome')pg=Game.S.player.gender;
+  if(v==='calendar'){const[y,m]=Game.today().split('-').map(Number);cal={y,m:m-1,s:null}}
+  if(v==='servers')Multiplayer.refresh();
+  fx('click');sel=null;Iso.sel=null;bar();sheet();
+};
+
+function doImport(txt){
+  try{
+    Game.importJSON(txt);endPlace();sel=null;Iso.sel=null;changed();
+    toast('Save imported.');
+    if(!Game.S.player.done)open('welcome');
+  }catch(e){toast('That isn’t a valid Monke Haven save. Paste the full exported JSON.')}
+}
+$('#sheet').onchange=e=>{if(e.target.id!=='fi')return;const f=e.target.files[0];if(f)f.text().then(doImport)};
+
+$('#bSrv').onclick=()=>open('servers');
+$('#bCal').onclick=()=>open('calendar');
+$('#pcard').onclick=()=>open('settings');
+$('#bChk').onclick=()=>open('quests');
+$('#bEdit').onclick=()=>open('quests',true);
+$('#bShop').onclick=()=>open('shop');
+$('#bSet').onclick=()=>open('settings');
+$('#bSnd').onclick=()=>{Game.S.muted=!Game.S.muted;changed();fx('click')};
+$('#zi').onclick=()=>Iso.zoom(1.2);
+$('#zo').onclick=()=>Iso.zoom(1/1.2);
+$('#zc').onclick=()=>Iso.fit();
+$('#ov').onclick=e=>{if(e.target.id==='ov'&&view!=='welcome'){view=null;sheet()}};
+
+$('#sheet').onclick=e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;
+  const S=Game.S,a=b.dataset.a,id=b.dataset.id;
+  if(a==='close'){view=null;sheet()}
+  else if(a==='qf'||a==='cat'){a==='qf'?qf=b.dataset.v:cat=b.dataset.v;sheet()}
+  else if(a==='tog')run(()=>Game.toggle(id));
+  else if(a==='chk'){if(S.lastCheckIn===Game.today()){toast('Already checked in today.');return}run(()=>Game.checkIn())}
+  else if(a==='add'){form={id:null};sheet();$('#ht').focus()}
+  else if(a==='ed'){form={id};sheet();$('#ht').focus()}
+  else if(a==='fcancel'){form=null;sheet()}
+  else if(a==='fsave'){
+    const t=$('#ht').value.trim(),d=$('#hd').value,s=$('#hs').value.trim(),pSel=$('#hp').value;
+    if(!t){toast('Give your quest a name first.');return}
+    const h=form.id&&S.habits.find(x=>x.id===form.id);
+    if(h){
+      h.title=t;h.desc=s;h.difficulty=d;
+      h.poseManual=pSel!=='auto'?pSel:null;
+      h.actionPose=h.poseManual||Game.detectPose(t,s);
+    }else{
+      S.habits.push(Game.mk(t,d,s,pSel));
+    }
+    form=null;fx('click');changed();
+  }
+  else if(a==='del'){S.habits=S.habits.filter(h=>h.id!==id);fx('undo');changed()}
+  else if(a==='buy'){if(Game.buy(id)){fx('coin');startPlace(id)}}
+  else if(a==='place')startPlace(id);
+  else if(a==='snd'){S.muted=!S.muted;changed()}
+  else if(a==='sim'){S.dayShift=(S.dayShift||0)+1;const m=Game.checkNewDay();fx('click');changed();toast(m||'Day advanced.')}
+  else if(a==='exp'){$('#io').value=JSON.stringify(S,null,2);$('#io').select()}
+  else if(a==='cpy'){$('#io').value=JSON.stringify(S);navigator.clipboard.writeText($('#io').value).then(()=>toast('Save copied.'),()=>{$('#io').select();toast('Select the text and copy it manually.')})}
+  else if(a==='imp')doImport($('#io').value);
+  else if(a==='gen'){pg=b.dataset.v;document.querySelectorAll('[data-a=gen]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));fx('click')}
+  else if(a==='psave'){
+    const n=$('#pn').value.trim().slice(0,20);
+    if(!n){toast('Enter a name first.');return}
+    S.player={name:n,gender:pg||'other',done:true};
+    const first=view==='welcome';
+    if(first)view=null;
+    fx('coin');changed();
+    toast(first?`Welcome, ${n}! Your island is ready.`:'Profile saved.');
+  }
+  else if(a==='cmo'){cal.m+=+b.dataset.v;if(cal.m<0){cal.m=11;cal.y--}else if(cal.m>11){cal.m=0;cal.y++}cal.s=null;sheet()}
+  else if(a==='cday'){cal.s=b.dataset.d;fx('click');sheet()}
+  else if(a==='dl'){const u=URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:'application/json'})),l=document.createElement('a');l.href=u;l.download=`monke-haven-${Game.today()}.json`;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast('Backup file saved.')}
+  else if(a==='pick')$('#fi').click();
+  else if(a==='rst'){if(!armed){armed=1;sheet();setTimeout(()=>{armed=0;if(view==='settings')sheet()},3000);return}armed=0;Game.reset();endPlace();view=null;changed();toast('Fresh island.')}
+  else if(a==='srv-join'){Multiplayer.joinServer(id).then(r=>{if(r.ok){fx('coin');toast(`Joined ${r.server.name}!`)}else{fx('bad');toast(r.reason)}})}
+  else if(a==='srv-retry'){Multiplayer.autoJoin().then(r=>{if(r.ok){fx('coin');toast(`Joined ${r.server.name}!`)}else{fx('bad');toast(r.reason)}})}
+  else if(a==='srv-sim'){const msg=Multiplayer.toggleSimFriend(id);fx('click');toast(msg)}
+  else if(a==='visit'){view=null;sheet();Iso.panToPeer(+b.dataset.idx);fx('click');toast('Viewing neighbor island (tap ⌂ to return)')}
+};
+
+/* Live Clock (1s) + Automatic New-Day Check (30s interval, visibilitychange, focus) */
+function checkDayTick(){
+  updateClock();
+  const msg=Game.checkNewDay();
+  if(msg){changed();toast(msg)}
+}
+setInterval(updateClock,1000);
+setInterval(checkDayTick,30000);
+addEventListener('focus',checkDayTick);
+addEventListener('pagehide',()=>Game.save());
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)Game.save();
+  else checkDayTick();
+});
+
+/* ---- Boot ---- */
+Game.load();
+const nd=Game.checkNewDay();
+Iso.init($('#cv'));
+Multiplayer.setListener(()=>{hud();if(view==='servers')sheet()});
+Multiplayer.init();
+changed();
+Iso.fit();
+if(nd)toast(nd);
+
+Multiplayer.autoJoin().then(res=>{
+  if(res&&res.allFull)toast('All servers full. Tap the server pill to retry.');
+});
+if(!Game.S.player.done)open('welcome');
+
+/* ---- Embedded PWA Manifest & Icons ---- */
+(()=>{try{
+  const icon=n=>{
+    const o=document.createElement('canvas');o.width=o.height=n;
+    const x=o.getContext('2d');x.scale(n/64,n/64);
+    x.fillStyle='#1e6bb8';x.fillRect(0,0,64,64);
+    x.lineWidth=2.5;x.strokeStyle='#1b1613';
+    [[17,24,6],[47,24,6],[32,30,15]].forEach(([a,b,r])=>{x.beginPath();x.arc(a,b,r,0,7);x.fillStyle='#8a5a34';x.fill();x.stroke()});
+    x.beginPath();x.ellipse(32,35,9.5,8,0,0,7);x.fillStyle='#f3d9b8';x.fill();x.stroke();
+    x.fillStyle='#1b1613';[27,37].forEach(a=>{x.beginPath();x.arc(a,28,1.9,0,7);x.fill()});
+    x.beginPath();x.arc(32,36,3,.2,2.9);x.stroke();
+    return o.toDataURL('image/png');
+  };
+  const ap=document.createElement('link');ap.rel='apple-touch-icon';ap.href=icon(180);document.head.appendChild(ap);
+  const m={
+    name:'Monke Haven',short_name:'Monke',
+    start_url:location.href.split('#')[0],
+    display:'standalone',background_color:'#1e6bb8',theme_color:'#1e6bb8',
+    icons:[
+      {src:icon(192),sizes:'192x192',type:'image/png'},
+      {src:icon(512),sizes:'512x512',type:'image/png',purpose:'any maskable'}
+    ]
+  };
+  $('#mf').href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/manifest+json'}));
+}catch(e){}
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}})();
+</script>
+</body>
+</html>
