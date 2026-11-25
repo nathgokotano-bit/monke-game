@@ -180,6 +180,7 @@ button.pp:disabled{opacity:.4}
   <button class="rb" id="zi" aria-label="Zoom in">+</button>
   <button class="rb" id="zo" aria-label="Zoom out">−</button>
   <button class="rb" id="zc" aria-label="Recenter">⌂</button>
+  <button class="rb" id="bRel" aria-label="Refresh page" title="Refresh">🔄</button>
 </div>
 
 <div id="bar" hidden></div>
@@ -1519,6 +1520,11 @@ $('#bSnd').onclick=()=>{Game.S.muted=!Game.S.muted;changed();fx('click')};
 $('#zi').onclick=()=>Iso.zoom(1.2);
 $('#zo').onclick=()=>Iso.zoom(1/1.2);
 $('#zc').onclick=()=>Iso.fit();
+$('#bRel').onclick = () => {
+  fx('click');
+  Game.save();
+  location.reload();
+};
 $('#ov').onclick=e=>{if(e.target.id==='ov'&&view!=='welcome'){view=null;sheet()}};
 
 $('#sheet').onclick=e=>{
